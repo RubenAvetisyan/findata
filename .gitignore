@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+.env
+.env.local
+*.tgz
+.history
+.windsurf
+
+# Sensitive data - PDF statements and parsed results
+*.pdf
+result.json
+result_multi.json
+stmt.csv

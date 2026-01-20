@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/final_result.v1.schema.json",
+  "title": "Bank Statement Parser Output (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["statements", "totalStatements", "totalTransactions"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "v1"
+    },
+    "statements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/statement" }
+    },
+    "totalStatements": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "totalTransactions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "parseErrors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/parseError" }
+    }
+  },
+  "$defs": {
+    "isoDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Date in YYYY-MM-DD format"
+    },
+    "isoDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 date-time"
+    },
+    "accountType": {
+      "type": "string",
+      "enum": ["checking", "savings", "credit"]
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["debit", "credit"]
+    },
+    "statementPeriod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "$ref": "#/$defs/isoDate" },
+        "end": { "$ref": "#/$defs/isoDate" }
+      }
+    },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["institution", "accountType", "accountNumberMasked", "statementPeriod", "currency"],
+      "properties": {
+        "institution": {
+          "type": "string",
+          "const": "Bank of America"
+        },
+        "accountType": { "$ref": "#/$defs/accountType" },
+        "accountNumberMasked": {
+          "type": "string",
+          "pattern": "^\\*{4}\\d{4}$",
+          "description": "Masked account number like ****1234"
+        },
+        "statementPeriod": { "$ref": "#/$defs/statementPeriod" },
+        "currency": {
+          "type": "string",
+          "const": "USD"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startingBalance", "endingBalance", "totalCredits", "totalDebits"],
+      "properties": {
+        "startingBalance": { "type": "number" },
+        "endingBalance": { "type": "number" },
+        "totalCredits": { "type": "number" },
+        "totalDebits": { "type": "number" }
+      }
+    },
+    "rawTransactionData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["originalText", "page"],
+      "properties": {
+        "originalText": { "type": "string" },
+        "page": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "postedDate", "description", "merchant", "amount", "direction", "category", "subcategory", "confidence", "raw"],
+      "properties": {
+        "date": { "$ref": "#/$defs/isoDate" },
+        "postedDate": {
+          "anyOf": [
+            { "$ref": "#/$defs/isoDate" },
+            { "type": "null" }
+          ]
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "merchant": {
+          "anyOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ]
+        },
+        "amount": { "type": "number" },
+        "direction": { "$ref": "#/$defs/direction" },
+        "category": { "type": "string", "minLength": 1 },
+        "subcategory": {
+          "anyOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "raw": { "$ref": "#/$defs/rawTransactionData" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["parserVersion", "parsedAt", "warnings"],
+      "properties": {
+        "parserVersion": { "type": "string" },
+        "parsedAt": { "$ref": "#/$defs/isoDateTime" },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account", "summary", "transactions", "metadata"],
+      "properties": {
+        "account": { "$ref": "#/$defs/account" },
+        "summary": { "$ref": "#/$defs/summary" },
+        "transactions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transaction" }
+        },
+        "metadata": { "$ref": "#/$defs/metadata" }
+      }
+    },
+    "parseError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "error"],
+      "properties": {
+        "filename": { "type": "string" },
+        "error": { "type": "string" }
+      }
+    }
+  }
+}
