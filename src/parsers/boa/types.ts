@@ -1,6 +1,6 @@
 import type { AccountType } from '../../schemas/index.js';
 
-export type TransactionSection = 'deposits' | 'withdrawals' | 'checks' | 'fees' | 'unknown';
+export type TransactionSection = 'deposits' | 'withdrawals' | 'checks' | 'fees' | 'other' | 'unknown';
 
 export interface RawTransaction {
   date: string;

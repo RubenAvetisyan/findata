@@ -27,7 +27,18 @@
     "transaction-categorization",
     "financial"
   ],
-  "author": "",
+  "author": {
+    "name": "Ruben Avetisyan",
+    "url": "https://github.com/RubenAvetisyan"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RubenAvetisyan/boa-statement-parser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RubenAvetisyan/boa-statement-parser/issues"
+  },
+  "homepage": "https://github.com/RubenAvetisyan/boa-statement-parser#readme",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
@@ -37,6 +48,7 @@
     "ajv-formats": "^3.0.1",
     "commander": "^12.1.0",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.530",
     "zod": "^3.23.8"
   },
   "devDependencies": {

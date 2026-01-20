@@ -528,11 +528,71 @@ Example structure for a new bank:
 
 | Library | Purpose | Rationale |
 |---------|---------|-----------|
-| `pdf-parse` | PDF extraction | Lightweight, no native deps, good text quality |
+| `pdfjs-dist` | Layout-aware PDF extraction | Positional text extraction for reliable table parsing |
+| `pdf-parse` | Fallback PDF extraction | Lightweight, no native deps, good for simple text |
 | `zod` | Schema validation | Runtime validation, TypeScript inference, composable |
 | `ajv` | JSON Schema validation | Draft 2020-12 support, fast, comprehensive |
 | `commander` | CLI parsing | Industry standard, auto-help, type-safe |
 | `vitest` | Testing | Fast, ESM-native, Jest-compatible API |
+
+## Parsing Engine Upgrade
+
+### Layout-Aware Extraction (pdfjs-dist)
+
+The parser now includes a layout-aware extraction engine using `pdfjs-dist` that extracts text with positional coordinates (x, y, width, height). This enables reliable row/column reconstruction for table parsing.
+
+**Key advantages:**
+- **Positional data**: Each text item includes x/y coordinates for accurate row grouping
+- **Column detection**: Infers column boundaries from header rows or X-coordinate clustering
+- **Wrapped line handling**: Merges multi-line descriptions that span multiple PDF text items
+- **Resilience**: More robust to minor formatting changes across statement versions
+
+**When to use each extractor:**
+- **pdfjs-dist (default)**: Best for structured table data, transaction parsing
+- **pdf-parse (fallback)**: Simpler extraction when layout isn't critical
+
+### Row/Column Reconstruction
+
+The layout engine provides utilities for:
+
+```typescript
+import { extractTextItems } from 'boa-statement-parser';
+import { groupByRows, mergeWrappedDescriptions } from 'boa-statement-parser/layout';
+
+// Extract with positions
+const { items } = await extractTextItems('./statement.pdf');
+
+// Group into rows (yTolerance default: 3.0)
+const rows = groupByRows(items, 3.0);
+
+// Merge wrapped descriptions
+const merged = mergeWrappedDescriptions(rows);
+```
+
+### Balance Reconciliation
+
+Quality checks validate that parsed data is consistent:
+
+```typescript
+import { validateReconciliation } from 'boa-statement-parser/validation';
+
+const result = validateReconciliation(
+  startingBalance,
+  endingBalance,
+  totalCredits,
+  totalDebits,
+  { tolerance: 0.01 }
+);
+
+if (!result.passed) {
+  console.warn(`Balance mismatch: ${result.difference}`);
+}
+```
+
+### Future Extensions
+
+- **MuPDF adapter**: Optional high-fidelity extraction (not yet implemented)
+- **OCR pathway**: For scanned/image-based PDFs (extension point documented)
 
 ## Known Limitations
 
