@@ -10,6 +10,10 @@
       "type": "string",
       "const": "v2"
     },
+    "schemaRevision": {
+      "type": "string",
+      "description": "Optional minor revision indicator (e.g., '2.0.1') without changing schemaVersion"
+    },
     "startingBalance": { "type": "number" },
     "endingBalance": { "type": "number" },
     "totalStatements": { "type": "integer", "minimum": 0 },
@@ -138,7 +142,14 @@
           "type": "string",
           "description": "Human-readable statement period label (e.g., '2025-08 BOA Checking')"
         },
-        "raw": { "$ref": "#/$defs/raw" }
+        "raw": { "$ref": "#/$defs/raw" },
+        "transactionId": {
+          "type": "string",
+          "minLength": 27,
+          "maxLength": 27,
+          "pattern": "^tx_[a-f0-9]{24}$",
+          "description": "Deterministic unique transaction identifier (OFX FITID-equivalent). Format: tx_ + 24 hex chars from SHA-256 hash."
+        }
       }
     },
     "accountBlock": {
@@ -343,7 +354,11 @@
           "properties": {
             "totalDiscrepancies": { "type": "integer", "minimum": 0 },
             "totalDelta": { "type": "number" },
-            "warnings": { "type": "array", "items": { "type": "string" } }
+            "warnings": { "type": "array", "items": { "type": "string" } },
+            "epsilon": {
+              "type": "number",
+              "description": "Tolerance threshold used for balance reconciliation (default: 0.01)"
+            }
           }
         }
       }

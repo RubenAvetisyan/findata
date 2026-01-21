@@ -8,6 +8,7 @@
  */
 
 import type { ParsedStatement } from '../schemas/index.js';
+import { computeStatementId, computePeriodLabel } from '../utils/id-generator.js';
 
 /**
  * Balance discrepancy diagnostic
@@ -64,64 +65,24 @@ export interface IntegrityCheckResult {
     totalDiscrepancies: number;
     totalDelta: number;
     warnings: string[];
+    epsilon?: number;
   };
 }
 
-/**
- * Generate a unique statement ID
- */
-export function generateStatementId(
-  accountType: string,
-  accountNumberMasked: string,
-  periodStart: string,
-  periodEnd: string
-): string {
-  const acctSuffix = accountNumberMasked.replace(/\*/g, '');
-  const startShort = periodStart.replace(/-/g, '');
-  const endShort = periodEnd.replace(/-/g, '');
-  return `${accountType.toUpperCase()}-${acctSuffix}-${startShort}-${endShort}`;
-}
-
-/**
- * Generate a human-readable period label
- */
-export function generatePeriodLabel(
-  accountType: string,
-  periodStart: string,
-  periodEnd: string
-): string {
-  const startDate = new Date(periodStart);
-  const endDate = new Date(periodEnd);
-  const startMonth = startDate.toLocaleString('en-US', { month: 'short' });
-  const endMonth = endDate.toLocaleString('en-US', { month: 'short' });
-  const year = endDate.getFullYear();
-  
-  if (startMonth === endMonth) {
-    return `${year}-${String(endDate.getMonth() + 1).padStart(2, '0')} BOA ${capitalize(accountType)}`;
-  }
-  return `${startMonth}-${endMonth} ${year} BOA ${capitalize(accountType)}`;
-}
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-}
+/** Default epsilon for balance reconciliation */
+export const DEFAULT_EPSILON = 0.01;
 
 /**
  * Check accounting integrity for a single statement
+ * @param statement - The parsed statement to check
+ * @param epsilon - Tolerance for balance comparison (default: 0.01)
  */
-export function checkStatementIntegrity(statement: ParsedStatement): StatementIntegrityResult {
-  const statementId = generateStatementId(
-    statement.account.accountType,
-    statement.account.accountNumberMasked,
-    statement.account.statementPeriod.start,
-    statement.account.statementPeriod.end
-  );
-  
-  const periodLabel = generatePeriodLabel(
-    statement.account.accountType,
-    statement.account.statementPeriod.start,
-    statement.account.statementPeriod.end
-  );
+export function checkStatementIntegrity(
+  statement: ParsedStatement,
+  epsilon: number = DEFAULT_EPSILON
+): StatementIntegrityResult {
+  const statementId = computeStatementId(statement);
+  const periodLabel = computePeriodLabel(statement);
   
   const beginningBalance = statement.summary.startingBalance;
   const endingBalance = statement.summary.endingBalance;
@@ -133,7 +94,7 @@ export function checkStatementIntegrity(statement: ParsedStatement): StatementIn
   const calculatedEnding = beginningBalance + totalCredits - totalDebits;
   const delta = Math.round((endingBalance - calculatedEnding) * 100) / 100;
   
-  const balancePassed = Math.abs(delta) < 0.01; // Allow 1 cent tolerance for rounding
+  const balancePassed = Math.abs(delta) <= epsilon;
   
   // Check transaction count
   const actualCount = statement.transactions.length;
@@ -143,7 +104,8 @@ export function checkStatementIntegrity(statement: ParsedStatement): StatementIn
   const discrepancies: BalanceDiscrepancy[] = [];
   
   if (!balancePassed) {
-    const severity = Math.abs(delta) > 100 ? 'error' : Math.abs(delta) > 1 ? 'warning' : 'info';
+    // Severity: error if > $1.00, warning if > epsilon but <= $1.00
+    const severity = Math.abs(delta) > 1.00 ? 'error' : 'warning';
     discrepancies.push({
       statementId,
       periodLabel,
@@ -185,9 +147,14 @@ export function checkStatementIntegrity(statement: ParsedStatement): StatementIn
 
 /**
  * Check accounting integrity for all statements
+ * @param statements - Array of parsed statements to check
+ * @param epsilon - Tolerance for balance comparison (default: 0.01)
  */
-export function checkIntegrity(statements: ParsedStatement[]): IntegrityCheckResult {
-  const statementResults = statements.map(checkStatementIntegrity);
+export function checkIntegrity(
+  statements: ParsedStatement[],
+  epsilon: number = DEFAULT_EPSILON
+): IntegrityCheckResult {
+  const statementResults = statements.map((stmt) => checkStatementIntegrity(stmt, epsilon));
   
   const statementsWithIssues = statementResults.filter(r => !r.isValid).length;
   const allDiscrepancies = statementResults.flatMap(r => r.discrepancies);
@@ -210,28 +177,19 @@ export function checkIntegrity(statements: ParsedStatement[]): IntegrityCheckRes
       totalDiscrepancies: allDiscrepancies.length,
       totalDelta: Math.round(totalDelta * 100) / 100,
       warnings,
+      epsilon,
     },
   };
 }
 
 /**
  * Add traceability fields to transactions
+ * @deprecated Use computeStatementId and computePeriodLabel from utils/id-generator.js instead
  */
 export function addTraceability(
   statement: ParsedStatement
 ): { statementId: string; periodLabel: string } {
-  const statementId = generateStatementId(
-    statement.account.accountType,
-    statement.account.accountNumberMasked,
-    statement.account.statementPeriod.start,
-    statement.account.statementPeriod.end
-  );
-  
-  const periodLabel = generatePeriodLabel(
-    statement.account.accountType,
-    statement.account.statementPeriod.start,
-    statement.account.statementPeriod.end
-  );
-  
+  const statementId = computeStatementId(statement);
+  const periodLabel = computePeriodLabel(statement);
   return { statementId, periodLabel };
 }

@@ -414,6 +414,41 @@ pnpm parse-boa ./statement.pdf --schema-version v2
 FINAL_RESULT_SCHEMA_VERSION=v2 pnpm parse-boa ./statement.pdf
 ```
 
+## OFX Export
+
+The parser supports exporting v2 output to OFX (Open Financial Exchange) format for import into accounting software like Quicken, GnuCash, or Dolibarr.
+
+### Programmatic Usage
+
+```typescript
+import { toFinalResultV2, exportOfx } from 'boa-statement-parser';
+
+// Convert to v2 format
+const v2Result = toFinalResultV2(canonicalOutput);
+
+// Export to OFX
+const ofxText = exportOfx(v2Result);
+
+// Or export a single account
+import { exportAccountOfx } from 'boa-statement-parser';
+const singleAccountOfx = exportAccountOfx(v2Result.accounts[0]);
+```
+
+### OFX Features
+
+- **FITID**: Uses deterministic `transactionId` as OFX FITID for reliable duplicate detection
+- **Signed amounts**: Credits are positive, debits are negative
+- **Date formatting**: Converts ISO dates to OFX YYYYMMDD format
+- **Multiple accounts**: Generates one `<STMTTRNRS>` block per account
+- **Ledger balance**: Includes ending balance with date
+
+### Schema Versioning Notes
+
+- **v1 stays canonical raw output**: The v1 schema represents the raw parsed output from individual statements
+- **v2 is rollup + integrity**: The v2 schema groups by account and adds analytics/integrity checks
+- **schemaVersion remains v1/v2**: The `schemaVersion` field is a const and should not be changed
+- **schemaRevision is optional**: Use the new optional `schemaRevision` field for minor version tracking without breaking validation
+
 ## Deduplication
 
 When processing multiple PDFs (especially when combined PDFs overlap with individual statement PDFs), the parser performs intelligent deduplication:

@@ -5,7 +5,12 @@
 import type { ParsedStatement } from '../schemas/index.js';
 import type { SchemaVersion } from '../schemas/schema-registry.js';
 import { generateAnalytics, type AnalyticsResult } from './analytics.js';
-import { checkIntegrity, addTraceability, type IntegrityCheckResult } from './integrity.js';
+import { checkIntegrity, type IntegrityCheckResult } from './integrity.js';
+import {
+  computeStatementId,
+  computePeriodLabel,
+  computeTransactionId,
+} from '../utils/id-generator.js';
 
 /**
  * Canonical internal representation used by the parser.
@@ -106,6 +111,7 @@ export interface FinalResultV2 {
       confidence: number;
       statementId: string;
       periodLabel: string;
+      transactionId: string;
       raw: {
         originalText: string;
         page: number;
@@ -241,26 +247,31 @@ export function toFinalResultV2(canonical: CanonicalOutput): FinalResultV2 {
     totalStartingBalance += accountStartingBalance;
     totalEndingBalance += accountEndingBalance;
 
-    // Collect all transactions for this account with traceability
+    // Collect all transactions for this account with traceability and transaction IDs
     const allTransactions = group.statements.flatMap((stmt) => {
-      const traceability = addTraceability(stmt);
-      return stmt.transactions.map((txn) => ({
-        date: txn.date,
-        postedDate: txn.postedDate,
-        description: txn.description,
-        merchant: txn.merchant ?? 'Unknown',
-        amount: txn.amount,
-        direction: txn.direction,
-        category: txn.category,
-        subcategory: txn.subcategory,
-        confidence: txn.confidence,
-        statementId: traceability.statementId,
-        periodLabel: traceability.periodLabel,
-        raw: {
-          originalText: txn.raw.originalText,
-          page: txn.raw.page,
-        },
-      }));
+      const statementId = computeStatementId(stmt);
+      const periodLabel = computePeriodLabel(stmt);
+      return stmt.transactions.map((txn) => {
+        const transactionId = computeTransactionId(txn, statementId);
+        return {
+          date: txn.date,
+          postedDate: txn.postedDate,
+          description: txn.description,
+          merchant: txn.merchant ?? 'Unknown',
+          amount: txn.amount,
+          direction: txn.direction,
+          category: txn.category,
+          subcategory: txn.subcategory,
+          confidence: txn.confidence,
+          statementId,
+          periodLabel,
+          transactionId,
+          raw: {
+            originalText: txn.raw.originalText,
+            page: txn.raw.page,
+          },
+        };
+      });
     });
 
     // Sort transactions by date

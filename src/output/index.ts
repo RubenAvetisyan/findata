@@ -29,9 +29,14 @@ export {
   checkIntegrity,
   checkStatementIntegrity,
   addTraceability,
-  generateStatementId,
-  generatePeriodLabel,
+  DEFAULT_EPSILON,
   type IntegrityCheckResult,
   type StatementIntegrityResult,
   type BalanceDiscrepancy,
 } from './integrity.js';
+
+export {
+  exportOfx,
+  exportAccountOfx,
+  type OfxExportOptions,
+} from './ofx-exporter.js';

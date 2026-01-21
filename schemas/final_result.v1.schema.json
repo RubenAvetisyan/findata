@@ -1,7 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/final_result.v1.schema.json",
-  "title": "Bank Statement Parser Output (v1)",
+  "title": "Bank Statement Parser Output (v1) - Bank of America Specific",
+  "description": "Schema for Bank of America statement parser output. Institution and currency constraints (const 'Bank of America', const 'USD') are intentional for this BOA-specific project. For multi-bank support, these would need to be relaxed in a future schema version.",
   "type": "object",
   "additionalProperties": false,
   "required": ["statements", "totalStatements", "totalTransactions"],
@@ -9,6 +10,10 @@
     "schemaVersion": {
       "type": "string",
       "const": "v1"
+    },
+    "schemaRevision": {
+      "type": "string",
+      "description": "Optional minor revision indicator (e.g., '1.0.1') without changing schemaVersion"
     },
     "statements": {
       "type": "array",
@@ -130,7 +135,14 @@
           "minimum": 0,
           "maximum": 1
         },
-        "raw": { "$ref": "#/$defs/rawTransactionData" }
+        "raw": { "$ref": "#/$defs/rawTransactionData" },
+        "transactionId": {
+          "type": "string",
+          "minLength": 27,
+          "maxLength": 27,
+          "pattern": "^tx_[a-f0-9]{24}$",
+          "description": "Deterministic unique transaction identifier (OFX FITID-equivalent). Format: tx_ + 24 hex chars from SHA-256 hash."
+        }
       }
     },
     "metadata": {
@@ -143,6 +155,10 @@
         "warnings": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "sourceFile": {
+          "type": "string",
+          "description": "Original source file name"
         }
       }
     },
@@ -157,7 +173,15 @@
           "type": "array",
           "items": { "$ref": "#/$defs/transaction" }
         },
-        "metadata": { "$ref": "#/$defs/metadata" }
+        "metadata": { "$ref": "#/$defs/metadata" },
+        "statementId": {
+          "type": "string",
+          "description": "Deterministic unique identifier for this statement (OFX-grade)"
+        },
+        "periodLabel": {
+          "type": "string",
+          "description": "Human-readable statement period label"
+        }
       }
     },
     "parseError": {
