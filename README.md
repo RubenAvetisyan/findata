@@ -14,6 +14,7 @@ A production-ready Node.js library and CLI for parsing Bank of America bank stat
 - **Smart deduplication**: Statement-level and transaction-level dedup with completeness scoring
 - **Automatic detection**: Identifies account type from statement content
 - **Transaction categorization**: 70+ priority-ordered rules with confidence tiers
+- **ML-based categorization**: TensorFlow.js with Universal Sentence Encoder for intelligent categorization
 - **Channel detection**: Identifies CHECKCARD, ATM, Zelle, Online Banking transfers, etc.
 - **Bank reference extraction**: Captures confirmation numbers, trace numbers, ATM IDs
 - **Merchant extraction**: Extracts merchant name, city, state, and online flag
@@ -255,6 +256,104 @@ The parser includes 70+ priority-ordered categorization rules covering:
 
 Uncategorized transactions receive a confidence score of 0.5.
 
+## ML-Based Categorization
+
+The parser includes an optional machine learning-based categorizer using TensorFlow.js and Universal Sentence Encoder for intelligent transaction categorization.
+
+### Architecture
+
+- **Text Embeddings**: Universal Sentence Encoder generates 512-dimensional embeddings from transaction descriptions
+- **Neural Network**: Multi-output classifier predicts both category and subcategory
+- **Hybrid Approach**: Combines rule-based and ML categorization for best results
+
+### Usage
+
+```typescript
+import { HybridCategorizer, generateTrainingData } from 'boa-statement-parser';
+
+// Initialize hybrid categorizer
+const categorizer = new HybridCategorizer();
+await categorizer.initialize();
+
+// Train with synthetic data (or your own labeled transactions)
+const trainingData = generateTrainingData(5000);
+await categorizer.trainML(trainingData, { epochs: 50 });
+
+// Categorize with hybrid approach
+const result = await categorizer.categorizeAsync('STARBUCKS COFFEE SEATTLE WA', 'CHECKCARD');
+console.log(result.category);    // 'Food & Dining'
+console.log(result.subcategory); // 'Restaurants'
+console.log(result.source);      // 'rule' | 'ml' | 'hybrid'
+
+// Clean up
+categorizer.dispose();
+```
+
+### Hybrid Strategy
+
+1. **Rule-first**: Fast, deterministic rule-based categorization runs first
+2. **High confidence bypass**: If rule confidence ≥ 0.9, use rule result directly
+3. **ML validation**: For medium confidence (0.75-0.9), ML validates/overrides
+4. **ML fallback**: For uncategorized transactions, ML provides predictions
+5. **Confidence combination**: When rule and ML agree, confidences are combined
+
+### Training Data Generation
+
+The `generateTrainingData()` function creates synthetic training examples from:
+- 100+ merchant templates across all categories
+- Data augmentation (prefixes, cities, store numbers)
+- Existing rule-based patterns
+
+```typescript
+import { generateTrainingData, generateFromParsedTransactions } from 'boa-statement-parser';
+
+// Generate synthetic training data
+const syntheticData = generateTrainingData(5000);
+
+// Or use your own labeled transactions
+const customData = generateFromParsedTransactions([
+  { description: 'MY LOCAL COFFEE SHOP', category: 'Food & Dining', subcategory: 'Restaurants' },
+  // ... more examples
+]);
+```
+
+### Model Persistence
+
+```typescript
+// Save trained model
+await categorizer.saveMLModel('./models/categorizer');
+
+// Load pre-trained model
+const newCategorizer = new HybridCategorizer();
+await newCategorizer.loadMLModel('./models/categorizer');
+```
+
+### Performance Notes
+
+- First prediction is slower due to model warm-up
+- Batch predictions (`predictBatch`) are more efficient for multiple transactions
+- Consider installing `@tensorflow/tfjs-node` for faster CPU inference
+
+### CLI Usage for ML Training
+
+```bash
+# Train ML model using synthetic data only
+pnpm parse-boa --train-ml --model-out ./models/categorizer
+
+# Train ML model from your parsed statements (recommended)
+pnpm parse-boa --train-ml --inputDir ./statements --model-out ./models/categorizer
+
+# Train with more epochs for better accuracy
+pnpm parse-boa --train-ml --inputDir ./statements --model-out ./models/categorizer --epochs 100 --verbose
+```
+
+The training process:
+1. Parses all PDFs in the input directory
+2. Extracts categorized transactions as training examples
+3. Augments with synthetic data for better coverage
+4. Trains the neural network
+5. Saves the model to the specified path
+
 ## CLI Options
 
 | Option | Description |
@@ -269,6 +368,11 @@ Uncategorized transactions receive a confidence score of 0.5.
 | `--no-pretty` | Disable pretty-printing |
 | `--single` | Parse as single statement (legacy mode) |
 | `--schema-version <v1\|v2>` | Output schema version (default: v1) |
+| `--train-ml` | Train ML categorizer from parsed transactions |
+| `--ml` | Use ML-based categorization (hybrid mode) |
+| `--model <path>` | Path to ML model directory (for loading) |
+| `--model-out <path>` | Output path for trained ML model |
+| `--epochs <number>` | Number of training epochs (default: 50) |
 | `--version` | Show version number |
 | `--help` | Show help |
 
@@ -562,13 +666,16 @@ pnpm format         # Format with Prettier
     categories.ts         # Legacy category rules
     categorizer.ts        # Legacy categorizer
     categorizer-v2.ts     # Priority-based categorizer with confidence tiers
+    ml-categorizer.ts     # TensorFlow.js ML-based categorizer
+    hybrid-categorizer.ts # Combined rule + ML categorization
+    training-data-generator.ts # Synthetic training data generation
   /schemas            # Zod schemas and types
   /types              # TypeScript output types (aligned with JSON Schema)
   /validation         # AJV JSON Schema validation
   /utils              # Shared utilities
     directory-scanner.ts  # PDF file discovery and filtering
     statement-merger.ts   # Statement/transaction deduplication
-/tests                # Test files (170+ tests)
+/tests                # Test files (367+ tests)
 /.windsurf            # Agent documentation
 ```
 

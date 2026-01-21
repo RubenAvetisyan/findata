@@ -15,5 +15,5 @@ coverage/
 *.csv
 *.qif
 result.json
-result_multi.json
+result_*.json
 stmt.csv

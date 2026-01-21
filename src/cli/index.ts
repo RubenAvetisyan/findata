@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { writeFile } from 'fs/promises';
-import { resolve } from 'path';
+import { writeFile, mkdir } from 'fs/promises';
+import { resolve, dirname } from 'path';
 import { extractPDF } from '../extractors/index.js';
 import { parseBoaStatement, parseBoaMultipleStatements } from '../parsers/index.js';
 import { ParsedStatementSchema } from '../schemas/index.js';
@@ -18,6 +18,8 @@ type OutputFormat = typeof AVAILABLE_FORMATS[number];
 import { PARSER_VERSION } from '../utils/constants.js';
 import { scanDirectoryForPdfs, validateDirectory } from '../utils/directory-scanner.js';
 import { processBatch, type ParseError } from '../batch/index.js';
+import { HybridCategorizer, generateTrainingData, generateFromParsedTransactions } from '../categorization/index.js';
+import type { TrainingExample } from '../categorization/index.js';
 
 const program = new Command();
 
@@ -49,6 +51,11 @@ program
     'Split output into separate files per account (only with --format ofx or csv)',
     false
   )
+  .option('--train-ml', 'Train ML categorizer from parsed transactions', false)
+  .option('--ml', 'Use ML-based categorization (hybrid mode)', false)
+  .option('--model <path>', 'Path to ML model directory (for loading or saving)')
+  .option('--model-out <path>', 'Output path for trained ML model')
+  .option('--epochs <number>', 'Number of training epochs', '50')
   .action(async (pdfFile: string | undefined, options: {
     inputDir?: string;
     out?: string;
@@ -59,8 +66,19 @@ program
     schemaVersion?: string;
     format: string;
     splitAccounts: boolean;
+    trainMl: boolean;
+    ml: boolean;
+    model?: string;
+    modelOut?: string;
+    epochs: string;
   }) => {
     try {
+      // ML Training mode
+      if (options.trainMl) {
+        await trainMLModel(options);
+        return;
+      }
+
       // Determine mode: directory or single file
       if (options.inputDir !== undefined) {
         // Directory batch mode
@@ -92,6 +110,11 @@ interface CliOptions {
   schemaVersion?: string;
   format: string;
   splitAccounts: boolean;
+  trainMl: boolean;
+  ml: boolean;
+  model?: string;
+  modelOut?: string;
+  epochs: string;
 }
 
 /**
@@ -137,6 +160,10 @@ async function processDirectory(inputDir: string, options: CliOptions): Promise<
     if (scanResult.skipped.length > 0) {
       console.error(`[INFO] Skipped ${scanResult.skipped.length} file(s)`);
     }
+    if (options.ml) {
+      console.error(`[INFO] ML categorization: enabled`);
+      console.error(`[INFO] Model path: ${options.model ?? './models/categorizer'}`);
+    }
   }
   
   // Process all PDFs
@@ -163,6 +190,46 @@ async function processDirectory(inputDir: string, options: CliOptions): Promise<
   console.error(`Transactions merged:    ${result.totalTransactions}`);
   console.error(`Transactions deduped:   ${result.summary.duplicateTransactionsRemoved}`);
   console.error('================================');
+
+  // Apply ML categorization if enabled
+  if (options.ml) {
+    const modelPath = resolve(options.model ?? './models/categorizer');
+    console.error(`[INFO] Loading ML model from: ${modelPath}`);
+    
+    const categorizer = new HybridCategorizer();
+    await categorizer.initialize();
+    await categorizer.loadMLModel(modelPath);
+    
+    console.error('[INFO] Re-categorizing transactions with ML...');
+    
+    let mlRecategorized = 0;
+    let mlImproved = 0;
+    
+    for (const stmt of result.statements) {
+      for (const tx of stmt.transactions) {
+        const mlResult = await categorizer.categorizeAsync(tx.description);
+        
+        // Update if ML provides better categorization
+        if (mlResult.source === 'ml' || mlResult.source === 'hybrid') {
+          if (tx.category === 'Uncategorized' || mlResult.confidence > tx.confidence) {
+            const wasUncategorized = tx.category === 'Uncategorized';
+            tx.category = mlResult.category;
+            tx.subcategory = mlResult.subcategory;
+            tx.confidence = mlResult.confidence;
+            mlRecategorized++;
+            if (wasUncategorized && mlResult.category !== 'Uncategorized') {
+              mlImproved++;
+            }
+          }
+        }
+      }
+    }
+    
+    console.error(`[INFO] ML re-categorized: ${mlRecategorized} transactions`);
+    console.error(`[INFO] ML improved (was Uncategorized): ${mlImproved} transactions`);
+    
+    categorizer.dispose();
+  }
   
   // Build canonical output
   const canonical: CanonicalOutput = {
@@ -380,6 +447,46 @@ async function processSingleFile(pdfFile: string, options: CliOptions): Promise<
       }
     }
 
+    // Apply ML categorization if enabled
+    if (options.ml) {
+      const modelPath = resolve(options.model ?? './models/categorizer');
+      console.error(`[INFO] Loading ML model from: ${modelPath}`);
+      
+      const categorizer = new HybridCategorizer();
+      await categorizer.initialize();
+      await categorizer.loadMLModel(modelPath);
+      
+      console.error('[INFO] Re-categorizing transactions with ML...');
+      
+      let mlRecategorized = 0;
+      let mlImproved = 0;
+      
+      for (const stmt of result.statements) {
+        for (const tx of stmt.transactions) {
+          const mlResult = await categorizer.categorizeAsync(tx.description);
+          
+          // Update if ML provides better categorization
+          if (mlResult.source === 'ml' || mlResult.source === 'hybrid') {
+            if (tx.category === 'Uncategorized' || mlResult.confidence > tx.confidence) {
+              const wasUncategorized = tx.category === 'Uncategorized';
+              tx.category = mlResult.category;
+              tx.subcategory = mlResult.subcategory;
+              tx.confidence = mlResult.confidence;
+              mlRecategorized++;
+              if (wasUncategorized && mlResult.category !== 'Uncategorized') {
+                mlImproved++;
+              }
+            }
+          }
+        }
+      }
+      
+      console.error(`[INFO] ML re-categorized: ${mlRecategorized} transactions`);
+      console.error(`[INFO] ML improved (was Uncategorized): ${mlImproved} transactions`);
+      
+      categorizer.dispose();
+    }
+
     // Build canonical output
     canonical = {
       statements: result.statements,
@@ -445,6 +552,122 @@ async function processSingleFile(pdfFile: string, options: CliOptions): Promise<
     console.log(outputContent);
   }
 
+  process.exit(0);
+}
+
+/**
+ * Train ML categorizer from parsed transactions
+ */
+async function trainMLModel(options: CliOptions): Promise<void> {
+  const epochs = parseInt(options.epochs, 10);
+  
+  if (options.verbose) {
+    console.error('[INFO] ML Training Mode');
+    console.error(`[INFO] Epochs: ${epochs}`);
+  }
+
+  let trainingData: TrainingExample[] = [];
+
+  // If inputDir is provided, parse PDFs and extract training data from categorized transactions
+  if (options.inputDir !== undefined) {
+    const dirPath = resolve(options.inputDir);
+    
+    if (options.verbose) {
+      console.error(`[INFO] Extracting training data from: ${dirPath}`);
+    }
+
+    // Validate and scan directory
+    const validation = await validateDirectory(dirPath);
+    if (!validation.valid) {
+      console.error(`[ERROR] ${validation.error}`);
+      process.exit(1);
+    }
+
+    const scanResult = await scanDirectoryForPdfs(dirPath);
+    if (scanResult.files.length === 0) {
+      console.error('[ERROR] No PDF files found in directory');
+      process.exit(1);
+    }
+
+    console.error(`[INFO] Found ${scanResult.files.length} PDF file(s)`);
+
+    // Process PDFs to get transactions
+    const result = await processBatch(scanResult.files, {
+      strict: options.strict,
+      verbose: options.verbose,
+      onProgress: (current, total, filename) => {
+        console.error(`[INFO] Parsing ${current}/${total}: ${filename}`);
+      },
+      onError: (error: ParseError) => {
+        console.error(`[ERROR] Failed to parse ${error.filename}: ${error.error}`);
+      },
+    });
+
+    // Extract training examples from parsed transactions
+    // Note: ParsedStatement uses flattened structure with category/subcategory directly on transaction
+    const parsedExamples: Array<{ description: string; category: string; subcategory: string | null }> = [];
+    
+    for (const stmt of result.statements) {
+      for (const tx of stmt.transactions) {
+        // Only use transactions that were successfully categorized (not Uncategorized)
+        if (tx.category !== 'Uncategorized') {
+          parsedExamples.push({
+            description: tx.description,
+            category: tx.category,
+            subcategory: tx.subcategory,
+          });
+        }
+      }
+    }
+
+    console.error(`[INFO] Extracted ${parsedExamples.length} categorized transactions for training`);
+
+    // Convert to training examples
+    trainingData = generateFromParsedTransactions(
+      parsedExamples as Array<{ description: string; category: import('../types/output.js').Category; subcategory: import('../types/output.js').Subcategory }>
+    );
+
+    // Augment with synthetic data to improve coverage
+    const syntheticData = generateTrainingData(2000);
+    trainingData = [...trainingData, ...syntheticData];
+    
+    console.error(`[INFO] Total training examples: ${trainingData.length} (${parsedExamples.length} from PDFs + ${syntheticData.length} synthetic)`);
+  } else {
+    // No input directory - use only synthetic training data
+    console.error('[INFO] No --inputDir provided, using synthetic training data only');
+    trainingData = generateTrainingData(5000);
+    console.error(`[INFO] Generated ${trainingData.length} synthetic training examples`);
+  }
+
+  // Initialize and train the ML categorizer
+  console.error('[INFO] Initializing ML categorizer...');
+  const categorizer = new HybridCategorizer();
+  await categorizer.initialize();
+
+  console.error('[INFO] Training ML model...');
+  console.error('[INFO] This may take a few minutes...');
+  
+  await categorizer.trainML(trainingData, { epochs, batchSize: 32 });
+
+  console.error('[INFO] Training complete!');
+  console.error(categorizer.getMLModelSummary());
+
+  // Save the model if output path is specified
+  const modelOutPath = options.modelOut ?? options.model;
+  if (modelOutPath !== undefined) {
+    const modelPath = resolve(modelOutPath);
+    
+    // Ensure directory exists
+    await mkdir(dirname(modelPath), { recursive: true });
+    
+    console.error(`[INFO] Saving model to: ${modelPath}`);
+    await categorizer.saveMLModel(modelPath);
+    console.error('[INFO] Model saved successfully!');
+  } else {
+    console.error('[WARN] No --model-out specified, model not saved');
+  }
+
+  categorizer.dispose();
   process.exit(0);
 }
 
