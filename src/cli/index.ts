@@ -11,7 +11,10 @@ import {
   validateOutputOrThrow,
   AVAILABLE_SCHEMA_VERSIONS,
 } from '../schemas/schema-registry.js';
-import { toFinalResult, type CanonicalOutput } from '../output/index.js';
+import { toFinalResult, toFinalResultV2, exportOfx, exportOfxByAccount, type CanonicalOutput } from '../output/index.js';
+
+const AVAILABLE_FORMATS = ['json', 'ofx'] as const;
+type OutputFormat = typeof AVAILABLE_FORMATS[number];
 import { PARSER_VERSION } from '../utils/constants.js';
 import { scanDirectoryForPdfs, validateDirectory } from '../utils/directory-scanner.js';
 import { processBatch, type ParseError } from '../batch/index.js';
@@ -36,6 +39,16 @@ program
     `Output schema version (${AVAILABLE_SCHEMA_VERSIONS.join(', ')})`,
     undefined
   )
+  .option(
+    '-f, --format <format>',
+    `Output format (${AVAILABLE_FORMATS.join(', ')})`,
+    'json'
+  )
+  .option(
+    '--split-accounts',
+    'Split OFX output into separate files per account (only with --format ofx)',
+    false
+  )
   .action(async (pdfFile: string | undefined, options: {
     inputDir?: string;
     out?: string;
@@ -44,6 +57,8 @@ program
     pretty: boolean;
     single: boolean;
     schemaVersion?: string;
+    format: string;
+    splitAccounts: boolean;
   }) => {
     try {
       // Determine mode: directory or single file
@@ -75,6 +90,8 @@ interface CliOptions {
   pretty: boolean;
   single: boolean;
   schemaVersion?: string;
+  format: string;
+  splitAccounts: boolean;
 }
 
 /**
@@ -165,20 +182,62 @@ async function processDirectory(inputDir: string, options: CliOptions): Promise<
 
   if (options.verbose) {
     console.error(`[INFO] Output schema version: ${schemaVersion}`);
+    console.error(`[INFO] Output format: ${options.format}`);
   }
   
-  // Write output
-  const jsonOutput = options.pretty
-    ? JSON.stringify(output, null, 2)
-    : JSON.stringify(output);
+  // Generate output based on format
+  const format = options.format.toLowerCase() as OutputFormat;
   
-  if (options.out !== undefined) {
-    const outPath = resolve(options.out);
-    await writeFile(outPath, jsonOutput, 'utf-8');
-    console.error(`[INFO] Output written to: ${outPath}`);
+  if (format === 'ofx') {
+    // OFX requires v2 format
+    const v2Output = toFinalResultV2(canonical);
+    
+    if (options.splitAccounts) {
+      // Split into separate files per account
+      const splitResults = exportOfxByAccount(v2Output);
+      
+      if (options.verbose) {
+        console.error(`[INFO] Splitting OFX into ${splitResults.length} account file(s)`);
+      }
+      
+      // Determine output directory (use --out as directory or current dir)
+      const outDir = options.out !== undefined ? resolve(options.out) : process.cwd();
+      
+      for (const result of splitResults) {
+        const filePath = resolve(outDir, result.filename);
+        await writeFile(filePath, result.content, 'utf-8');
+        console.error(`[INFO] Written: ${filePath} (${result.accountType} ****${result.accountLast4})`);
+      }
+    } else {
+      // Single combined OFX file
+      const outputContent = exportOfx(v2Output);
+      if (options.verbose) {
+        console.error(`[INFO] Generated OFX with ${v2Output.accounts.length} account(s)`);
+      }
+      
+      if (options.out !== undefined) {
+        const outPath = resolve(options.out);
+        await writeFile(outPath, outputContent, 'utf-8');
+        console.error(`[INFO] Output written to: ${outPath}`);
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(outputContent);
+      }
+    }
   } else {
-    // eslint-disable-next-line no-console
-    console.log(jsonOutput);
+    // Default JSON output
+    const outputContent = options.pretty
+      ? JSON.stringify(output, null, 2)
+      : JSON.stringify(output);
+    
+    if (options.out !== undefined) {
+      const outPath = resolve(options.out);
+      await writeFile(outPath, outputContent, 'utf-8');
+      console.error(`[INFO] Output written to: ${outPath}`);
+    } else {
+      // eslint-disable-next-line no-console
+      console.log(outputContent);
+    }
   }
   
   // Exit with error if ALL PDFs failed
@@ -214,6 +273,7 @@ async function processSingleFile(pdfFile: string, options: CliOptions): Promise<
   }
 
   let output: unknown;
+  let canonical: CanonicalOutput | null = null;
 
   if (options.single) {
     // Legacy single-statement mode
@@ -285,7 +345,7 @@ async function processSingleFile(pdfFile: string, options: CliOptions): Promise<
     }
 
     // Build canonical output
-    const canonical: CanonicalOutput = {
+    canonical = {
       statements: result.statements,
       totalStatements: result.statements.length,
       totalTransactions: result.totalTransactions,
@@ -302,21 +362,40 @@ async function processSingleFile(pdfFile: string, options: CliOptions): Promise<
 
   if (options.verbose) {
     console.error(`[INFO] Output schema version: ${schemaVersion}`);
+    console.error(`[INFO] Output format: ${options.format}`);
   }
 
-  const jsonOutput = options.pretty
-    ? JSON.stringify(output, null, 2)
-    : JSON.stringify(output);
+  // Generate output based on format
+  const format = options.format.toLowerCase() as OutputFormat;
+  let outputContent: string;
+  
+  if (format === 'ofx') {
+    // OFX requires v2 format - build canonical if in single mode
+    if (options.single || canonical === null) {
+      console.error('[ERROR] OFX format requires multi-statement mode. Remove --single flag.');
+      process.exit(1);
+    }
+    const v2Output = toFinalResultV2(canonical);
+    outputContent = exportOfx(v2Output);
+    if (options.verbose) {
+      console.error(`[INFO] Generated OFX with ${v2Output.accounts.length} account(s)`);
+    }
+  } else {
+    // Default JSON output
+    outputContent = options.pretty
+      ? JSON.stringify(output, null, 2)
+      : JSON.stringify(output);
+  }
 
   if (options.out !== undefined) {
     const outPath = resolve(options.out);
-    await writeFile(outPath, jsonOutput, 'utf-8');
+    await writeFile(outPath, outputContent, 'utf-8');
     if (options.verbose) {
       console.error(`[INFO] Output written to: ${outPath}`);
     }
   } else {
     // eslint-disable-next-line no-console
-    console.log(jsonOutput);
+    console.log(outputContent);
   }
 
   process.exit(0);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportOfx, exportAccountOfx } from '../../src/output/ofx-exporter.js';
+import { exportOfx, exportAccountOfx, exportOfxByAccount } from '../../src/output/ofx-exporter.js';
 import type { FinalResultV2 } from '../../src/output/adapters.js';
 
 const createMockV2Result = (): FinalResultV2 => ({
@@ -145,6 +145,25 @@ describe('ofx-exporter', () => {
       expect(ofx).toContain('<CURDEF>USD</CURDEF>');
     });
 
+    it('should use numeric ACCTID (replace * with 0)', () => {
+      const v2Result = createMockV2Result();
+      const ofx = exportOfx(v2Result);
+
+      // ****3529 should become 00003529
+      expect(ofx).toContain('<ACCTID>00003529</ACCTID>');
+      expect(ofx).not.toContain('XXXX');
+      expect(ofx).not.toContain('****');
+    });
+
+    it('should generate unique TRNUID based on statement period', () => {
+      const v2Result = createMockV2Result();
+      const ofx = exportOfx(v2Result);
+
+      // Format: stmt_YYYYMMDD_YYYYMMDD_ACCT
+      expect(ofx).toContain('<TRNUID>stmt_20250101_20250131_3529</TRNUID>');
+      expect(ofx).not.toContain('<TRNUID>0</TRNUID>');
+    });
+
     it('should include transactions with FITID', () => {
       const v2Result = createMockV2Result();
       const ofx = exportOfx(v2Result);
@@ -154,19 +173,21 @@ describe('ofx-exporter', () => {
       expect(ofx).toContain('<FITID>tx_123456789012345678901234</FITID>');
     });
 
-    it('should format credit amounts as positive', () => {
+    it('should format credit amounts as positive with specific TRNTYPE', () => {
       const v2Result = createMockV2Result();
       const ofx = exportOfx(v2Result);
 
-      expect(ofx).toContain('<TRNTYPE>CREDIT</TRNTYPE>');
+      // "Direct Deposit" maps to DEP type
+      expect(ofx).toContain('<TRNTYPE>DEP</TRNTYPE>');
       expect(ofx).toContain('<TRNAMT>200.00</TRNAMT>');
     });
 
-    it('should format debit amounts as negative', () => {
+    it('should format debit amounts as negative with specific TRNTYPE', () => {
       const v2Result = createMockV2Result();
       const ofx = exportOfx(v2Result);
 
-      expect(ofx).toContain('<TRNTYPE>DEBIT</TRNTYPE>');
+      // "CHECKCARD" maps to POS type
+      expect(ofx).toContain('<TRNTYPE>POS</TRNTYPE>');
       expect(ofx).toContain('<TRNAMT>-50.00</TRNAMT>');
     });
 
@@ -252,6 +273,92 @@ describe('ofx-exporter', () => {
 
       expect(stmtTrnStart).toBeLessThan(fitIdStart);
       expect(fitIdStart).toBeLessThan(stmtTrnEnd);
+    });
+  });
+
+  describe('TRNTYPE detection', () => {
+    it('should detect ATM transactions', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[0]!.description = 'ATM WITHDRAWAL';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>ATM</TRNTYPE>');
+    });
+
+    it('should detect XFER for Zelle transactions', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[0]!.description = 'ZELLE PAYMENT TO JOHN';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>XFER</TRNTYPE>');
+    });
+
+    it('should detect XFER for transfers', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[0]!.description = 'Online Banking transfer from SAV';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>XFER</TRNTYPE>');
+    });
+
+    it('should detect FEE for fee transactions', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[1]!.description = 'Monthly Maintenance Fee';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>FEE</TRNTYPE>');
+    });
+
+    it('should detect CHECK and extract CHECKNUM', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[1]!.description = 'CHECK #1234';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>CHECK</TRNTYPE>');
+      expect(ofx).toContain('<CHECKNUM>1234</CHECKNUM>');
+    });
+
+    it('should detect PAYMENT for ACH transactions', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[1]!.description = 'ACH PAYMENT TO UTILITY';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>PAYMENT</TRNTYPE>');
+    });
+
+    it('should detect INT for interest', () => {
+      const v2Result = createMockV2Result();
+      v2Result.accounts[0]!.transactions[0]!.description = 'INTEREST PAYMENT';
+      const ofx = exportOfx(v2Result);
+      expect(ofx).toContain('<TRNTYPE>INT</TRNTYPE>');
+    });
+  });
+
+  describe('exportOfxByAccount', () => {
+    it('should split accounts into separate results', () => {
+      const v2Result = createMockV2Result();
+      // Add a second account
+      v2Result.accounts.push({
+        ...v2Result.accounts[0]!,
+        account: {
+          ...v2Result.accounts[0]!.account,
+          accountType: 'savings',
+          accountNumberMasked: '****4971',
+        },
+      });
+
+      const results = exportOfxByAccount(v2Result);
+
+      expect(results).toHaveLength(2);
+      expect(results[0]!.accountType).toBe('checking');
+      expect(results[0]!.accountLast4).toBe('3529');
+      expect(results[0]!.filename).toBe('boa_checking_3529.ofx');
+      expect(results[1]!.accountType).toBe('savings');
+      expect(results[1]!.accountLast4).toBe('4971');
+      expect(results[1]!.filename).toBe('boa_savings_4971.ofx');
+    });
+
+    it('should generate valid OFX content for each account', () => {
+      const v2Result = createMockV2Result();
+      const results = exportOfxByAccount(v2Result);
+
+      expect(results[0]!.content).toContain('<OFX>');
+      expect(results[0]!.content).toContain('<ACCTTYPE>CHECKING</ACCTTYPE>');
+      expect(results[0]!.content).toContain('</OFX>');
     });
   });
 });

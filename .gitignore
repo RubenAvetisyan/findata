@@ -11,6 +11,7 @@ coverage/
 
 # Sensitive data - PDF statements and parsed results
 *.pdf
+*.ofx
 result.json
 result_multi.json
 stmt.csv

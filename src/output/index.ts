@@ -38,5 +38,7 @@ export {
 export {
   exportOfx,
   exportAccountOfx,
+  exportOfxByAccount,
   type OfxExportOptions,
+  type SplitOfxResult,
 } from './ofx-exporter.js';

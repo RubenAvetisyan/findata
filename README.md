@@ -261,6 +261,8 @@ Uncategorized transactions receive a confidence score of 0.5.
 |--------|-------------|
 | `-d, --inputDir <dir>` | Directory containing PDF files to batch process |
 | `-o, --out <file>` | Output file path (default: stdout) |
+| `-f, --format <format>` | Output format: `json` or `ofx` (default: json) |
+| `--split-accounts` | Split OFX into separate files per account |
 | `-v, --verbose` | Enable verbose output with debug info |
 | `-s, --strict` | Enable strict validation mode |
 | `--pretty` | Pretty-print JSON output (default: true) |
@@ -416,7 +418,38 @@ FINAL_RESULT_SCHEMA_VERSION=v2 pnpm parse-boa ./statement.pdf
 
 ## OFX Export
 
-The parser supports exporting v2 output to OFX (Open Financial Exchange) format for import into accounting software like Quicken, GnuCash, or Dolibarr.
+The parser supports exporting to OFX (Open Financial Exchange) format for import into accounting software like Quicken, GnuCash, or Dolibarr.
+
+### CLI Usage
+
+```bash
+# Export single PDF to OFX
+pnpm parse-boa ./statement.pdf --format ofx --out statement.ofx
+
+# Export directory of PDFs to OFX
+pnpm parse-boa --inputDir ./statements --format ofx --out combined.ofx
+
+# Split into separate files per account (boa_checking_3529.ofx, boa_savings_4971.ofx)
+pnpm parse-boa --inputDir ./statements --format ofx --split-accounts --out ./output/
+
+# With verbose output
+pnpm parse-boa ./statement.pdf --format ofx --out statement.ofx --verbose
+```
+
+### OFX Transaction Types
+
+The exporter automatically detects specific OFX transaction types from descriptions:
+
+| Type | Detected From |
+|------|---------------|
+| `DEP` | Deposit, Direct Dep, Payroll |
+| `POS` | Checkcard, Purchase, Debit Card |
+| `ATM` | ATM, Cash Withdrawal |
+| `XFER` | Zelle, Transfer, Wire |
+| `CHECK` | Check #1234 (also extracts `CHECKNUM`) |
+| `FEE` | Fee, Service Charge, Overdraft |
+| `PAYMENT` | Payment, Bill Pay, ACH |
+| `INT` | Interest |
 
 ### Programmatic Usage
 
