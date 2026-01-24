@@ -63,7 +63,7 @@ program
   )
   .option('--train-ml', 'Train ML categorizer from parsed transactions', envBool('BOA_TRAIN_ML', false))
   .option('--ml', 'Use ML-based categorization (hybrid mode)', envBool('BOA_ML', false))
-  .option('--model <path>', 'Path to ML model directory (for loading or saving)', process.env['BOA_MODEL_PATH'])
+  .option('--model <path>', 'Path to ML model directory (for loading or saving)', process.env['BOA_MODEL_PATH'] ?? (envBool('BOA_ML', false) ? './models/categorizer' : undefined))
   .option('--model-out <path>', 'Output path for trained ML model', process.env['BOA_MODEL_OUT'])
   .option('--epochs <number>', 'Number of training epochs', process.env['BOA_EPOCHS'] ?? '50')
   .action(async (pdfFile: string | undefined, options: {
