@@ -520,6 +520,257 @@ pnpm parse-boa ./statement.pdf --schema-version v2
 FINAL_RESULT_SCHEMA_VERSION=v2 pnpm parse-boa ./statement.pdf
 ```
 
+## Environment Variables
+
+The parser automatically loads environment variables from a `.env` file using [dotenv](https://www.npmjs.com/package/dotenv). This eliminates the need to set environment variables manually in your shell.
+
+### Quick Setup
+
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit as needed
+nano .env  # or use your preferred editor
+```
+
+The `.env` file is automatically loaded when running the CLI. No additional configuration required.
+
+### Application Settings
+
+| Variable | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `FINAL_RESULT_SCHEMA_VERSION` | `v1`, `v2` | `v2` | Controls the output JSON schema format |
+
+**`FINAL_RESULT_SCHEMA_VERSION`**
+
+Determines which output schema version to use when generating JSON output. This is the primary application-specific environment variable.
+
+- **`v1`**: Original flat format with a `statements` array. Best for individual statement processing.
+- **`v2`**: Rollup format grouped by account with analytics, integrity checks, and aggregated totals. Best for multi-account reporting and financial analysis.
+
+Resolution precedence (highest to lowest):
+1. CLI flag: `--schema-version v2`
+2. `.env` file: `FINAL_RESULT_SCHEMA_VERSION=v2`
+3. Default: `v2`
+
+```bash
+# Simply run the CLI - .env is loaded automatically
+pnpm parse-boa ./statement.pdf
+
+# CLI flags still override .env values
+pnpm parse-boa ./statement.pdf --schema-version v1
+```
+
+### Input/Output Settings
+
+| Variable | CLI Equivalent | Default | Description |
+|----------|----------------|---------|-------------|
+| `BOA_INPUT_DIR` | `--inputDir` | (none) | Directory containing PDF files to process |
+| `BOA_OUTPUT_FILE` | `--out` | stdout | Output file path |
+| `BOA_FORMAT` | `--format` | `json` | Output format: `json`, `ofx`, `csv` |
+| `BOA_SPLIT_ACCOUNTS` | `--split-accounts` | `false` | Split output into separate files per account |
+
+**Example:**
+```bash
+# .env
+BOA_INPUT_DIR=C:\Users\YourName\Documents\Statements
+BOA_OUTPUT_FILE=result.json
+BOA_FORMAT=json
+```
+
+Now you can simply run:
+```bash
+pnpm parse-boa
+```
+
+### Parsing Options
+
+| Variable | CLI Equivalent | Default | Description |
+|----------|----------------|---------|-------------|
+| `BOA_VERBOSE` | `--verbose` | `false` | Enable verbose output with debug info |
+| `BOA_STRICT` | `--strict` | `false` | Enable strict validation mode |
+| `BOA_PRETTY` | `--pretty` | `true` | Pretty-print JSON output |
+| `BOA_SINGLE` | `--single` | `false` | Parse as single statement (legacy mode) |
+
+### ML Categorization Settings
+
+| Variable | CLI Equivalent | Default | Description |
+|----------|----------------|---------|-------------|
+| `BOA_ML` | `--ml` | `false` | Use ML-based categorization (hybrid mode) |
+| `BOA_MODEL_PATH` | `--model` | (none) | Path to ML model directory for loading |
+| `BOA_MODEL_OUT` | `--model-out` | (none) | Output path for trained ML model |
+| `BOA_TRAIN_ML` | `--train-ml` | `false` | Train ML categorizer from parsed transactions |
+| `BOA_EPOCHS` | `--epochs` | `50` | Number of training epochs |
+
+**Example ML configuration:**
+```bash
+# .env
+BOA_ML=true
+BOA_MODEL_PATH=./models/categorizer
+```
+
+### Node.js Runtime
+
+| Variable | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `NODE_ENV` | `development`, `production`, `test` | `development` | Node.js environment mode |
+
+**`NODE_ENV`**
+
+Standard Node.js environment variable that affects runtime behavior:
+
+- **`development`**: Enables verbose error messages, development-only features
+- **`production`**: Optimizes for performance, minimizes logging
+- **`test`**: Used during test execution (set automatically by Vitest)
+
+```bash
+# Production mode
+NODE_ENV=production pnpm parse-boa ./statement.pdf
+```
+
+### TensorFlow.js Settings
+
+These variables control the ML categorizer's TensorFlow.js backend behavior.
+
+| Variable | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `TF_FORCE_BACKEND` | `cpu`, `webgl`, `wasm` | `cpu` | Force a specific TensorFlow.js backend |
+| `TF_CPP_MIN_LOG_LEVEL` | `0`, `1`, `2`, `3` | `0` | TensorFlow C++ logging level |
+| `TF_ENABLE_ONEDNN_OPTS` | `0`, `1` | `1` | Enable/disable oneDNN optimizations |
+
+**`TF_FORCE_BACKEND`**
+
+Forces TensorFlow.js to use a specific computation backend:
+
+- **`cpu`**: Pure JavaScript CPU backend. Most compatible, works everywhere.
+- **`webgl`**: GPU-accelerated via WebGL. Faster for large models but requires GPU.
+- **`wasm`**: WebAssembly backend. Good balance of speed and compatibility.
+
+```bash
+# Force CPU backend (recommended for Node.js)
+TF_FORCE_BACKEND=cpu pnpm parse-boa --ml ./statement.pdf
+```
+
+**`TF_CPP_MIN_LOG_LEVEL`**
+
+Controls TensorFlow's C++ logging verbosity (when using native bindings):
+
+- **`0`**: All logs (DEBUG, INFO, WARNING, ERROR)
+- **`1`**: INFO and above
+- **`2`**: WARNING and above (suppresses most logs)
+- **`3`**: ERROR only
+
+```bash
+# Suppress TensorFlow info/warning logs
+TF_CPP_MIN_LOG_LEVEL=2 pnpm parse-boa --train-ml --inputDir ./statements
+```
+
+**`TF_ENABLE_ONEDNN_OPTS`**
+
+Controls Intel oneDNN (formerly MKL-DNN) optimizations:
+
+- **`1`**: Enable oneDNN optimizations (faster on Intel CPUs)
+- **`0`**: Disable oneDNN (useful if experiencing compatibility issues)
+
+```bash
+# Disable oneDNN if seeing warnings
+TF_ENABLE_ONEDNN_OPTS=0 pnpm parse-boa --ml ./statement.pdf
+```
+
+### Debugging
+
+| Variable | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `DEBUG` | Pattern string | (none) | Enable debug output for specific modules |
+| `NO_COLOR` | `1` | (none) | Disable colors in console output |
+| `FORCE_COLOR` | `1` | (none) | Force colors in console output |
+
+**`DEBUG`**
+
+Enables debug logging for specific modules using the `debug` package pattern:
+
+```bash
+# Enable all boa-parser debug logs
+DEBUG=boa-parser:* pnpm parse-boa ./statement.pdf
+
+# Enable specific module debugging
+DEBUG=boa-parser:extractor pnpm parse-boa ./statement.pdf
+
+# Multiple patterns
+DEBUG=boa-parser:parser,boa-parser:categorizer pnpm parse-boa ./statement.pdf
+```
+
+**`NO_COLOR`**
+
+Disables ANSI color codes in console output. Useful for logging to files or CI environments:
+
+```bash
+# Disable colors
+NO_COLOR=1 pnpm parse-boa ./statement.pdf > output.log
+```
+
+**`FORCE_COLOR`**
+
+Forces ANSI color codes even when output is not a TTY. Overrides `NO_COLOR`:
+
+```bash
+# Force colors in piped output
+FORCE_COLOR=1 pnpm parse-boa ./statement.pdf | tee output.log
+```
+
+### Example .env File
+
+```bash
+# .env - Complete example with all CLI options configured
+
+# Input/Output
+BOA_INPUT_DIR=C:\Users\YourName\Documents\Statements
+BOA_OUTPUT_FILE=result.json
+BOA_FORMAT=json
+
+# Parsing
+FINAL_RESULT_SCHEMA_VERSION=v2
+BOA_VERBOSE=false
+BOA_STRICT=false
+
+# ML Categorization
+BOA_ML=true
+BOA_MODEL_PATH=./models/categorizer
+
+# Runtime
+NODE_ENV=production
+TF_CPP_MIN_LOG_LEVEL=2
+TF_ENABLE_ONEDNN_OPTS=0
+```
+
+With this configuration, you can run:
+```bash
+pnpm parse-boa
+```
+Instead of:
+```bash
+pnpm parse-boa --inputDir "C:\Users\YourName\Documents\Statements" --ml --model ./models/categorizer --schema-version v2 --out result.json
+```
+
+### CI/CD Environment
+
+In CI/CD pipelines (GitHub Actions, etc.), you can set environment variables in your workflow:
+
+```yaml
+# .github/workflows/ci.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      FINAL_RESULT_SCHEMA_VERSION: v2
+      TF_CPP_MIN_LOG_LEVEL: 2
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm test
+```
+
 ## CSV Export
 
 The parser supports exporting to CSV format for spreadsheet import (Excel, Google Sheets, etc.).

@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import { Command } from 'commander';
 import { writeFile, mkdir } from 'fs/promises';
 import { resolve, dirname } from 'path';
@@ -23,39 +26,46 @@ import type { TrainingExample } from '../categorization/index.js';
 
 const program = new Command();
 
+// Helper to parse boolean env vars
+const envBool = (key: string, defaultVal: boolean): boolean => {
+  const val = process.env[key];
+  if (val === undefined || val === '') return defaultVal;
+  return val === 'true' || val === '1';
+};
+
 // Single PDF command (default)
 program
   .name('parse-boa')
   .description('Parse Bank of America statement PDFs into structured JSON')
   .version(PARSER_VERSION)
   .argument('[pdf-file]', 'Path to the Bank of America statement PDF')
-  .option('-d, --inputDir <directory>', 'Directory containing multiple PDF files to process')
-  .option('-o, --out <file>', 'Output file path (default: stdout)')
-  .option('-v, --verbose', 'Enable verbose output', false)
-  .option('-s, --strict', 'Enable strict validation mode', false)
-  .option('--pretty', 'Pretty-print JSON output', true)
+  .option('-d, --inputDir <directory>', 'Directory containing multiple PDF files to process', process.env['BOA_INPUT_DIR'])
+  .option('-o, --out <file>', 'Output file path (default: stdout)', process.env['BOA_OUTPUT_FILE'])
+  .option('-v, --verbose', 'Enable verbose output', envBool('BOA_VERBOSE', false))
+  .option('-s, --strict', 'Enable strict validation mode', envBool('BOA_STRICT', false))
+  .option('--pretty', 'Pretty-print JSON output', envBool('BOA_PRETTY', true))
   .option('--no-pretty', 'Disable pretty-printing')
-  .option('--single', 'Parse as single statement (legacy mode)', false)
+  .option('--single', 'Parse as single statement (legacy mode)', envBool('BOA_SINGLE', false))
   .option(
     '--schema-version <version>',
     `Output schema version (${AVAILABLE_SCHEMA_VERSIONS.join(', ')})`,
-    undefined
+    process.env['FINAL_RESULT_SCHEMA_VERSION']
   )
   .option(
     '-f, --format <format>',
     `Output format (${AVAILABLE_FORMATS.join(', ')})`,
-    'json'
+    process.env['BOA_FORMAT'] ?? 'json'
   )
   .option(
     '--split-accounts',
     'Split output into separate files per account (only with --format ofx or csv)',
-    false
+    envBool('BOA_SPLIT_ACCOUNTS', false)
   )
-  .option('--train-ml', 'Train ML categorizer from parsed transactions', false)
-  .option('--ml', 'Use ML-based categorization (hybrid mode)', false)
-  .option('--model <path>', 'Path to ML model directory (for loading or saving)')
-  .option('--model-out <path>', 'Output path for trained ML model')
-  .option('--epochs <number>', 'Number of training epochs', '50')
+  .option('--train-ml', 'Train ML categorizer from parsed transactions', envBool('BOA_TRAIN_ML', false))
+  .option('--ml', 'Use ML-based categorization (hybrid mode)', envBool('BOA_ML', false))
+  .option('--model <path>', 'Path to ML model directory (for loading or saving)', process.env['BOA_MODEL_PATH'])
+  .option('--model-out <path>', 'Output path for trained ML model', process.env['BOA_MODEL_OUT'])
+  .option('--epochs <number>', 'Number of training epochs', process.env['BOA_EPOCHS'] ?? '50')
   .action(async (pdfFile: string | undefined, options: {
     inputDir?: string;
     out?: string;
