@@ -1,4 +1,4 @@
-import pdf from 'pdf-parse';
+import { extractTextItemsFromBuffer, buildLinesForPage } from './layout-pdfjs.js';
 import { readFile } from 'fs/promises';
 
 export interface ExtractedPage {
@@ -18,55 +18,34 @@ export interface ExtractedPDF {
   };
 }
 
+/**
+ * Extract PDF using layout-aware pdfjs-dist extraction.
+ * This properly handles column gaps to prevent text from being "glued" together.
+ */
 export async function extractPDF(filePath: string): Promise<ExtractedPDF> {
   const dataBuffer = await readFile(filePath);
-  const data = await pdf(dataBuffer);
+  const layoutResult = await extractTextItemsFromBuffer(new Uint8Array(dataBuffer));
 
-  const pages = splitIntoPages(data.text, data.numpages);
-
-  const info = data.info as Record<string, unknown> | undefined;
-  
-  return {
-    pages,
-    fullText: data.text,
-    totalPages: data.numpages,
-    metadata: {
-      title: typeof info?.['Title'] === 'string' ? info['Title'] : undefined,
-      author: typeof info?.['Author'] === 'string' ? info['Author'] : undefined,
-      creationDate: typeof info?.['CreationDate'] === 'string' ? info['CreationDate'] : undefined,
-    },
-  };
-}
-
-function splitIntoPages(fullText: string, numPages: number): ExtractedPage[] {
-  const pageMarkers = fullText.split(/(?=Page \d+ of \d+)/);
-
-  if (pageMarkers.length > 1) {
-    return pageMarkers.map((text, index) => ({
-      pageNumber: index + 1,
-      text: text.trim(),
-      lines: text.split('\n').map((line) => line.trim()).filter((line) => line.length > 0),
-    }));
-  }
-
-  const lines = fullText.split('\n');
-  const linesPerPage = Math.ceil(lines.length / numPages);
+  // Build pages using layout-aware line reconstruction
   const pages: ExtractedPage[] = [];
-
-  for (let i = 0; i < numPages; i++) {
-    const startLine = i * linesPerPage;
-    const endLine = Math.min(startLine + linesPerPage, lines.length);
-    const pageLines = lines.slice(startLine, endLine);
-    const pageText = pageLines.join('\n');
-
+  for (let pageNum = 1; pageNum <= layoutResult.totalPages; pageNum++) {
+    const lines = buildLinesForPage(layoutResult.items, pageNum);
+    const text = lines.join('\n');
     pages.push({
-      pageNumber: i + 1,
-      text: pageText.trim(),
-      lines: pageLines.map((line) => line.trim()).filter((line) => line.length > 0),
+      pageNumber: pageNum,
+      text,
+      lines,
     });
   }
 
-  return pages;
+  const fullText = pages.map(p => p.text).join('\n\n');
+
+  return {
+    pages,
+    fullText,
+    totalPages: layoutResult.totalPages,
+    metadata: layoutResult.metadata,
+  };
 }
 
 export function findLinesByPattern(pages: ExtractedPage[], pattern: RegExp): Array<{

@@ -139,17 +139,25 @@ const SUBSCRIPTION_KEYWORDS = [
 ];
 
 /**
- * Normalize merchant name for grouping
+ * Normalize merchant name for grouping.
+ * For Zelle transactions, includes the sender/recipient name (4th word).
  */
 function normalizeMerchantKey(description: string): string {
-  return description
+  const normalized = description
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, '')
     .replace(/\s+/g, ' ')
-    .trim()
-    .split(' ')
-    .slice(0, 3) // Take first 3 words
-    .join(' ');
+    .trim();
+  
+  const words = normalized.split(' ');
+  
+  // For Zelle payments, include the person's name (4th word) to distinguish senders/recipients
+  if (words[0] === 'zelle' && words[1] === 'payment' && (words[2] === 'from' || words[2] === 'to')) {
+    return words.slice(0, 4).join(' '); // "zelle payment from/to NAME"
+  }
+  
+  // Default: take first 3 words
+  return words.slice(0, 3).join(' ');
 }
 
 /**

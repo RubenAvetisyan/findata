@@ -6,12 +6,25 @@ import type { RawTransaction, AccountInfo, BalanceInfo } from './types.js';
 /**
  * Pre-process a line to fix common OCR/extraction issues:
  * - Separates date from merchant when no space exists (e.g., "03/17/257-ELEVEN" -> "03/17/25 7-ELEVEN")
+ * - For non-Conf# lines: separates glued trailing amounts
  */
 function preprocessLine(line: string): string {
-  // Pattern: MM/DD/YY immediately followed by alphanumeric (no space)
-  // This handles cases like "03/17/257-ELEVEN" where the date runs into the merchant name
-  return line.replace(
+  // Always fix "03/17/257-ELEVEN" -> "03/17/25 7-ELEVEN"
+  const fixedDateJoin = line.replace(
     /^(\d{2}\/\d{2}\/\d{2})([A-Za-z0-9])/,
+    '$1 $2'
+  );
+
+  // IMPORTANT: do NOT do generic "glued amount" splitting on Conf# lines,
+  // because "...T0ZGTJ9B91,000.00" is ambiguous.
+  // Let the Zelle-specific extractor handle these cases.
+  if (/Conf#/i.test(fixedDateJoin)) {
+    return fixedDateJoin;
+  }
+
+  // For other cases (e.g., trace numbers), apply generic trailing amount split
+  return fixedDateJoin.replace(
+    /(\S)(-?\d{1,3}(?:,\d{3})*\.\d{2})$/,
     '$1 $2'
   );
 }
@@ -423,6 +436,94 @@ function extractAmountFromConfirmationLine(line: string): { cleanedLine: string;
 }
 
 /**
+ * Extract amount from Zelle lines where the Conf# code runs into the amount.
+ * Zelle confirmation codes are alphanumeric (6-10 chars) and can concatenate with amount.
+ * Example: "Conf# T0ZGTJ9B91,000.00" -> conf is "T0ZGTJ9B9", amount is "1,000.00"
+ * 
+ * Strategy: Generate all valid candidate splits, then choose the smallest amount.
+ * This handles ambiguous cases like "91,000.00" vs "1,000.00" correctly.
+ */
+function extractAmountFromZelleConfLine(line: string): { cleanedLine: string; amount: string } | null {
+  // First, check if this is a Zelle line with Conf#
+  if (!/Zelle.*Conf#/i.test(line)) {
+    return null;
+  }
+  
+  // Find the Conf# position
+  const confMatch = /Conf#\s*/i.exec(line);
+  if (confMatch === null) {
+    return null;
+  }
+  
+  const afterConf = line.slice(confMatch.index + confMatch[0].length).trimStart();
+  
+  // Find last letter index - conf codes contain letters, amounts don't
+  let lastLetterIndex = -1;
+  for (let i = 0; i < afterConf.length; i++) {
+    if (/[A-Za-z]/.test(afterConf[i] ?? '')) {
+      lastLetterIndex = i;
+    }
+  }
+  
+  if (lastLetterIndex < 0) {
+    return null;
+  }
+  
+  type Candidate = { confCode: string; amountPart: string; amountNum: number };
+  const candidates: Candidate[] = [];
+  
+  function considerCandidate(confCodeRaw: string, amountPartRaw: string): void {
+    const confCode = confCodeRaw.trim();
+    const amountPart = amountPartRaw.trim();
+    
+    // Conf code sanity checks
+    if (confCode.length < 6 || confCode.length > 12) return;
+    if (!/[A-Za-z]/.test(confCode)) return; // must contain letters
+    if (confCode.endsWith(',')) return;
+    
+    // Amount sanity checks
+    if (!/^-?\d{1,3}(?:,\d{3})*\.\d{2}$/.test(amountPart)) return;
+    
+    const amountNum = Math.abs(parseFloat(amountPart.replace(/,/g, '')));
+    if (!Number.isFinite(amountNum) || amountNum === 0) return;
+    
+    candidates.push({ confCode, amountPart, amountNum });
+  }
+  
+  // Scan all possible split points after the last letter
+  for (let splitPos = afterConf.length - 1; splitPos >= lastLetterIndex + 1; splitPos--) {
+    const confCode = afterConf.slice(0, splitPos);
+    const amountPart = afterConf.slice(splitPos);
+    considerCandidate(confCode, amountPart);
+  }
+  
+  if (candidates.length === 0) {
+    return null;
+  }
+  
+  // Separate candidates into those with commas (>= 1,000) and without
+  const withComma = candidates.filter(c => c.amountPart.includes(','));
+  const withoutComma = candidates.filter(c => !c.amountPart.includes(','));
+  
+  let best: Candidate;
+  
+  if (withComma.length > 0) {
+    // For amounts with commas: choose smallest amount (most digits went to conf code)
+    // This handles "T0ZGTJ9B91,000.00" -> prefer "1,000.00" over "91,000.00"
+    withComma.sort((a, b) => a.amountNum - b.amountNum || b.confCode.length - a.confCode.length);
+    best = withComma[0]!;
+  } else {
+    // For amounts without commas: choose largest amount (fewest digits stolen from conf code)
+    // This handles "T0ZDL3WND950.00" -> prefer "950.00" over "50.00"
+    withoutComma.sort((a, b) => b.amountNum - a.amountNum || a.confCode.length - b.confCode.length);
+    best = withoutComma[0]!;
+  }
+  
+  const cleanedLine = line.slice(0, confMatch.index) + `Conf# ${best.confCode} ${best.amountPart}`;
+  return { cleanedLine, amount: best.amountPart };
+}
+
+/**
  * Extract amount from lines where a long trace number is concatenated with the amount.
  * BoA CHECKCARD transactions have 17-25 digit trace numbers that can run into the amount.
  * Example: "CA 749064152172355304579864.32" -> trace is "74906415217235530457986", amount is "4.32"
@@ -480,6 +581,15 @@ function parseTransactionLine(
   if (confExtraction !== null) {
     workingLine = confExtraction.cleanedLine;
     extractedAmount = confExtraction.amount;
+  }
+
+  // Check for Zelle Conf# code mixed with amount (alphanumeric codes)
+  if (extractedAmount === null) {
+    const zelleExtraction = extractAmountFromZelleConfLine(workingLine);
+    if (zelleExtraction !== null) {
+      workingLine = zelleExtraction.cleanedLine;
+      extractedAmount = zelleExtraction.amount;
+    }
   }
 
   // Check for trace number mixed with amount (long digit sequences before amount)

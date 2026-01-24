@@ -164,3 +164,85 @@ function isTextItem(item: unknown): item is PdfjsTextItemLike {
     Array.isArray((item as PdfjsTextItemLike).transform)
   );
 }
+
+/**
+ * Build lines from text items using layout-aware gap detection.
+ * This reconstructs rows from positional data and inserts separators
+ * between columns to prevent text from being "glued" together.
+ * 
+ * @param items - Text items with positional data
+ * @returns Array of reconstructed lines with proper spacing
+ */
+export function buildLinesFromItems(items: TextItem[]): string[] {
+  const Y_TOL = 2.0;        // Row grouping tolerance (items within this Y distance are same row)
+  const SPACE_GAP = 2.5;    // Small gap -> insert space
+  const COLUMN_GAP = 18;    // Large gap -> insert tab (column separator)
+
+  if (items.length === 0) return [];
+
+  // Sort by Y descending (top to bottom), then X ascending (left to right)
+  const sorted = [...items].sort((a, b) => (b.y - a.y) || (a.x - b.x));
+
+  // Group items into rows based on Y coordinate
+  const rows: TextItem[][] = [];
+  for (const item of sorted) {
+    const lastRow = rows[rows.length - 1];
+    if (!lastRow) {
+      rows.push([item]);
+      continue;
+    }
+    const rowY = lastRow[0]!.y;
+    if (Math.abs(item.y - rowY) <= Y_TOL) {
+      lastRow.push(item);
+    } else {
+      rows.push([item]);
+    }
+  }
+
+  // Convert each row to a string with gap-based separators
+  const lines: string[] = [];
+  for (const row of rows) {
+    // Sort row items by X (left to right)
+    row.sort((a, b) => a.x - b.x);
+
+    let out = '';
+    let prevEndX: number | null = null;
+
+    for (const item of row) {
+      const text = item.str;
+      if (!text) continue;
+
+      if (prevEndX !== null) {
+        const gap = item.x - prevEndX;
+        if (gap > COLUMN_GAP) {
+          out += '\t';      // Strong column separator
+        } else if (gap > SPACE_GAP) {
+          out += ' ';       // Normal space
+        }
+      }
+
+      out += text;
+      prevEndX = item.x + item.width;
+    }
+
+    // Clean trailing whitespace
+    const cleaned = out.replace(/[ \t]+$/g, '');
+    if (cleaned) {
+      lines.push(cleaned);
+    }
+  }
+
+  return lines;
+}
+
+/**
+ * Build lines for a specific page from text items.
+ * 
+ * @param items - All text items from the PDF
+ * @param pageNumber - The page number to extract (1-indexed)
+ * @returns Array of lines for that page
+ */
+export function buildLinesForPage(items: TextItem[], pageNumber: number): string[] {
+  const pageItems = items.filter(item => item.page === pageNumber);
+  return buildLinesFromItems(pageItems);
+}

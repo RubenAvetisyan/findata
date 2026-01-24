@@ -202,6 +202,44 @@ describe('recurring-detector', () => {
       expect(result.patterns.length).toBe(1);
       expect(result.patterns[0]?.merchantKey).toContain('amazon');
     });
+
+    it('should separate Zelle payments by sender/recipient', () => {
+      // Zelle payments from different people should NOT be grouped together
+      const transactions: RecurringTransaction[] = [
+        { date: '2025-01-15', description: 'Zelle payment from JOHN DOE Conf# abc123', amount: 100, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+        { date: '2025-02-15', description: 'Zelle payment from JOHN DOE Conf# def456', amount: 100, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+        { date: '2025-03-15', description: 'Zelle payment from JANE SMITH Conf# ghi789', amount: 200, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+        { date: '2025-04-15', description: 'Zelle payment from JANE SMITH Conf# jkl012', amount: 200, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+      ];
+
+      const result = detectRecurring(transactions);
+
+      // Should have 0 patterns because each person only has 2 occurrences (default minOccurrences is 2, but we need regularity)
+      // Or if detected, they should be separate patterns
+      const johnPattern = result.patterns.find(p => p.merchantKey.includes('john'));
+      const janePattern = result.patterns.find(p => p.merchantKey.includes('jane'));
+      
+      // Key assertion: no pattern should group both JOHN and JANE together
+      const mixedPattern = result.patterns.find(p => 
+        p.merchantKey === 'zelle payment from' && p.occurrenceCount === 4
+      );
+      expect(mixedPattern).toBeUndefined();
+    });
+
+    it('should group Zelle payments from same sender', () => {
+      // Zelle payments from the same person should be grouped
+      const transactions: RecurringTransaction[] = [
+        { date: '2025-01-15', description: 'Zelle payment from JOHN DOE Conf# abc123', amount: 500, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+        { date: '2025-02-15', description: 'Zelle payment from JOHN DOE Conf# def456', amount: 500, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+        { date: '2025-03-15', description: 'Zelle payment from JOHN DOE Conf# ghi789', amount: 500, direction: 'credit', category: 'Transfer', subcategory: 'Zelle' },
+      ];
+
+      const result = detectRecurring(transactions);
+
+      expect(result.patterns.length).toBe(1);
+      expect(result.patterns[0]?.merchantKey).toBe('zelle payment from john');
+      expect(result.patterns[0]?.occurrenceCount).toBe(3);
+    });
   });
 
   describe('detectRecurringFromStatements', () => {
