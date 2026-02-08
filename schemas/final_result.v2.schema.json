@@ -25,7 +25,9 @@
     },
     "analytics": { "$ref": "#/$defs/analytics" },
     "integrity": { "$ref": "#/$defs/integrityCheck" },
-    "recurring": { "$ref": "#/$defs/recurringDetection" }
+    "recurring": { "$ref": "#/$defs/recurringDetection" },
+    "dataSources": { "$ref": "#/$defs/dataSources" },
+    "reconciliation": { "$ref": "#/$defs/reconciliationSummary" }
   },
   "$defs": {
     "isoDate": {
@@ -150,7 +152,8 @@
           "maxLength": 27,
           "pattern": "^tx_[a-f0-9]{24}$",
           "description": "Deterministic unique transaction identifier (OFX FITID-equivalent). Format: tx_ + 24 hex chars from SHA-256 hash."
-        }
+        },
+        "plaidMatch": { "$ref": "#/$defs/plaidMatch" }
       }
     },
     "accountBlock": {
@@ -430,6 +433,98 @@
         "summary": { "$ref": "#/$defs/recurringSummary" }
       },
       "description": "Recurring transaction detection results (only present when --detect-recurring is enabled)"
+    },
+    "dataSources": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Information about data sources used to generate this output",
+      "properties": {
+        "pdf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["files", "transactionCount", "parseDate"],
+          "properties": {
+            "files": { "type": "array", "items": { "type": "string" } },
+            "transactionCount": { "type": "integer", "minimum": 0 },
+            "parseDate": { "type": "string", "format": "date-time" }
+          }
+        },
+        "plaid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["itemId", "institutionName", "transactionCount", "syncDate"],
+          "properties": {
+            "itemId": { "type": "string" },
+            "institutionName": { "type": "string" },
+            "transactionCount": { "type": "integer", "minimum": 0 },
+            "syncDate": { "type": "string", "format": "date-time" },
+            "cursor": { "type": "string" }
+          }
+        }
+      }
+    },
+    "reconciliationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["matched", "unmatchedPdf", "unmatchedPlaid", "matchRate", "totalPdfAmount", "totalPlaidAmount", "amountDifference", "matchBreakdown"],
+      "description": "Summary of PDF vs Plaid transaction reconciliation",
+      "properties": {
+        "matched": { "type": "integer", "minimum": 0 },
+        "unmatchedPdf": { "type": "integer", "minimum": 0 },
+        "unmatchedPlaid": { "type": "integer", "minimum": 0 },
+        "matchRate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "totalPdfAmount": { "type": "number" },
+        "totalPlaidAmount": { "type": "number" },
+        "amountDifference": { "type": "number" },
+        "matchBreakdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["exact", "fuzzy", "amountDate", "amountOnly"],
+          "properties": {
+            "exact": { "type": "integer", "minimum": 0 },
+            "fuzzy": { "type": "integer", "minimum": 0 },
+            "amountDate": { "type": "integer", "minimum": 0 },
+            "amountOnly": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "plaidMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plaidTransactionId", "matchConfidence", "matchType", "differences"],
+      "description": "Plaid transaction match information for a PDF transaction",
+      "properties": {
+        "plaidTransactionId": { "type": "string" },
+        "matchConfidence": { "$ref": "#/$defs/confidence" },
+        "matchType": {
+          "type": "string",
+          "enum": ["exact", "fuzzy", "amount_date", "amount_only"]
+        },
+        "merchantName": { "type": "string" },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "city": { "type": "string" },
+            "state": { "type": "string" },
+            "country": { "type": "string" }
+          }
+        },
+        "personalFinanceCategory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary", "detailed"],
+          "properties": {
+            "primary": { "type": "string" },
+            "detailed": { "type": "string" }
+          }
+        },
+        "differences": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
     }
   }
 }

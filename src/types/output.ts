@@ -215,6 +215,8 @@ export interface Transaction {
       country?: string;
     };
   };
+
+  plaidMatch?: PlaidMatch;
 }
 
 export interface ParsedLine {
@@ -250,4 +252,56 @@ export interface MerchantInfo {
   phone: string | null;
   online: boolean | null;
   network: CardNetwork;
+}
+
+// Phase 10: Plaid Output Integration Types
+
+export interface DataSources {
+  pdf?: {
+    files: string[];
+    transactionCount: number;
+    parseDate: string;
+  };
+  plaid?: {
+    itemId: string;
+    institutionName: string;
+    transactionCount: number;
+    syncDate: string;
+    cursor?: string;
+  };
+}
+
+export interface ReconciliationSummary {
+  matched: number;
+  unmatchedPdf: number;
+  unmatchedPlaid: number;
+  matchRate: number;
+  totalPdfAmount: number;
+  totalPlaidAmount: number;
+  amountDifference: number;
+  matchBreakdown: {
+    exact: number;
+    fuzzy: number;
+    amountDate: number;
+    amountOnly: number;
+  };
+}
+
+export type PlaidMatchType = 'exact' | 'fuzzy' | 'amount_date' | 'amount_only';
+
+export interface PlaidMatch {
+  plaidTransactionId: string;
+  matchConfidence: number;
+  matchType: PlaidMatchType;
+  merchantName?: string;
+  location?: {
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  personalFinanceCategory?: {
+    primary: string;
+    detailed: string;
+  };
+  differences: string[];
 }

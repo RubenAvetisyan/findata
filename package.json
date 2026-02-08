@@ -62,8 +62,9 @@
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.4.530",
     "pg": "^8.18.0",
-    "zod": "^3.23.8",
-    "plaid": "^41.1.0"
+    "plaid": "^41.1.0",
+    "selfsigned": "^5.5.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

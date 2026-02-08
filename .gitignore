@@ -1,5 +1,6 @@
 node_modules/
 Statements/
+Tests/
 dist/
 coverage/
 *.log
@@ -19,3 +20,4 @@ result.json
 result_*.json
 stmt.csv
 test-result.json
+.plaid-certs/
