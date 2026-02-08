@@ -27,7 +27,7 @@ export async function syncTransactions(
     access_token: accessToken,
   };
 
-  if (cursor !== undefined) {
+  if (cursor !== undefined && cursor !== '') {
     request.cursor = cursor;
   }
 

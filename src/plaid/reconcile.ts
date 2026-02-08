@@ -195,10 +195,23 @@ function calculateMatchConfidence(
     differences.push(`Date mismatch: PDF=${pdfTx.date}, Plaid=${plaidTx.date}`);
   }
 
-  // Merchant comparison
+  // Merchant comparison — use best similarity across multiple string pairs
+  // Plaid may enrich our description into a different merchantName (e.g. "Glenrose Liquor & Mini Mart")
+  // so we compare all relevant combinations and take the highest score
   const pdfMerchant = getPdfMerchant(pdfTx);
   const plaidMerchant = getPlaidMerchant(plaidTx);
-  const merchantSimilarity = stringSimilarity(pdfMerchant, plaidMerchant);
+  const similarities = [stringSimilarity(pdfMerchant, plaidMerchant)];
+
+  // Also compare PDF description vs Plaid name (closest to original description we sent)
+  if (plaidTx.name !== plaidMerchant) {
+    similarities.push(stringSimilarity(pdfMerchant, plaidTx.name));
+  }
+  if (pdfTx.description !== pdfMerchant) {
+    similarities.push(stringSimilarity(pdfTx.description, plaidTx.name));
+    similarities.push(stringSimilarity(pdfTx.description, plaidMerchant));
+  }
+
+  const merchantSimilarity = Math.max(...similarities);
 
   if (merchantSimilarity >= 0.9) {
     confidence += 0.3;

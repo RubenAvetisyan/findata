@@ -48,13 +48,37 @@ export async function createLinkToken(
       : {}),
   };
 
-  const response = await client.linkTokenCreate(request);
+  try {
+    const response = await client.linkTokenCreate(request);
 
-  return {
-    linkToken: response.data.link_token,
-    expiration: response.data.expiration,
-    requestId: response.data.request_id,
-  };
+    return {
+      linkToken: response.data.link_token,
+      expiration: response.data.expiration,
+      requestId: response.data.request_id,
+    };
+  } catch (err: unknown) {
+    // Extract Plaid-specific error details from Axios response (snake_case from API)
+    const axiosErr = err as {
+      response?: {
+        data?: {
+          error_message?: string;
+          error_type?: string;
+          error_code?: string;
+          suggested_action?: string;
+        };
+        status?: number;
+      };
+    };
+    const pd = axiosErr.response?.data;
+    if (pd !== undefined && pd.error_message !== undefined) {
+      throw new Error(
+        `Plaid linkTokenCreate failed (${String(axiosErr.response?.status)}): ` +
+        `[${String(pd.error_type)}/${String(pd.error_code)}] ${pd.error_message}` +
+        (pd.suggested_action !== undefined ? ` — ${pd.suggested_action}` : '')
+      );
+    }
+    throw err;
+  }
 }
 
 /**
@@ -114,8 +138,8 @@ export async function getItem(accessToken: string): Promise<{
   return {
     itemId: item.item_id,
     institutionId: item.institution_id ?? null,
-    availableProducts: item.available_products as Products[],
-    billedProducts: item.billed_products as Products[],
+    availableProducts: item.available_products,
+    billedProducts: item.billed_products,
     consentExpirationTime: item.consent_expiration_time ?? null,
     updateType: item.update_type,
     error: response.data.item.error as PlaidError | null,
@@ -172,23 +196,39 @@ export async function getInstitution(institutionId: string): Promise<{
     logo: institution.logo ?? null,
     primaryColor: institution.primary_color ?? null,
     countryCodes: institution.country_codes as string[],
-    products: institution.products as Products[],
+    products: institution.products,
   };
 }
 
 /**
  * Create a sandbox public token for testing.
  * Only works in sandbox environment.
+ * @param institutionId - Institution ID (default: ins_109508 for First Platypus Bank)
+ * @param products - Products to enable (default: [Transactions])
+ * @param overrideUsername - Custom sandbox username (e.g. 'custom_boa') for custom test data
+ * @param overridePassword - Custom sandbox password (default: any value works for custom users)
  */
 export async function createSandboxPublicToken(
-  institutionId: string = 'ins_109508',
-  products: Products[] = [Products.Transactions]
+  institutionId?: string,
+  products?: Products[],
+  overrideUsername?: string,
+  overridePassword?: string
 ): Promise<{ publicToken: string; requestId: string }> {
   const client = getPlaidClient();
 
   const response = await client.sandboxPublicTokenCreate({
-    institution_id: institutionId,
-    initial_products: products,
+    institution_id: institutionId ?? 'ins_109508',
+    initial_products: products ?? [Products.Transactions],
+    ...(overrideUsername !== undefined
+      ? {
+          options: {
+            override_username: overrideUsername,
+            ...(overridePassword !== undefined
+              ? { override_password: overridePassword }
+              : {}),
+          },
+        }
+      : {}),
   });
 
   return {

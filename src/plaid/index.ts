@@ -167,3 +167,35 @@ export {
   type HoldingsResult,
   type InvestmentTransactionsResult,
 } from './investments.js';
+
+// Link Server (browser-based OAuth flow for production)
+export {
+  startLinkServer,
+  type LinkServerOptions,
+  type LinkServerResult,
+} from './link-server.js';
+
+// Merge (Plaid → result.json enrichment)
+export {
+  mergePlaidData,
+  formatMergeReport,
+  type ResultJson,
+  type ResultAccount,
+  type ResultTransaction,
+  type PlaidEnrichment,
+  type MergeResult,
+  type MergeStats,
+} from './merge.js';
+
+// Unified Sync Service
+export {
+  PlaidSyncService,
+  createSyncService,
+  type SyncServiceConfig,
+  type ScheduledSyncConfig,
+  type ScheduledSyncStatus,
+  type SyncPhase,
+  type SyncProgressEvent,
+  type SyncResult,
+  type SyncStatus,
+} from './sync-service.js';
