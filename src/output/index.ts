@@ -62,3 +62,12 @@ export {
   type RecurringDetectionResult,
   type RecurringDetectionOptions,
 } from './recurring-detector.js';
+
+export {
+  enrichWithPlaid,
+  isPlaidEnriched,
+  getPlaidMatchStats,
+  type MergeStrategy,
+  type EnrichOptions,
+  type EnrichResult,
+} from './plaid-enricher.js';
