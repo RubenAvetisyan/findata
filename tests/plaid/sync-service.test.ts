@@ -4,27 +4,27 @@ import {
   createSyncService,
   type SyncServiceConfig,
   type SyncProgressEvent,
-} from '../../src/plaid/sync-service.js';
-import { InMemoryPlaidItemStore } from '../../src/plaid/store.js';
-import type { PlaidItem, PlaidTransaction } from '../../src/plaid/types.js';
+} from '@findata/plaid-bridge';
+import { InMemoryPlaidItemStore } from '@findata/plaid-bridge';
+import type { PlaidItem, PlaidTransaction } from '@findata/types';
 
-// Mock the external dependencies
-vi.mock('../../src/plaid/transactions.js', () => ({
+// Mock the internal source files that sync-service.ts imports from
+vi.mock('../../packages/plaid-bridge/src/transactions.js', () => ({
   syncAllTransactions: vi.fn(),
 }));
 
-vi.mock('../../src/supabase/import.js', () => ({
-  upsertTransactions: vi.fn(),
-}));
-
-vi.mock('../../src/plaid/webhooks.js', () => ({
+vi.mock('../../packages/plaid-bridge/src/webhooks.js', () => ({
   handleWebhook: vi.fn(),
 }));
 
-// Import mocked modules
-import { syncAllTransactions } from '../../src/plaid/transactions.js';
-import { upsertTransactions } from '../../src/supabase/import.js';
-import { handleWebhook } from '../../src/plaid/webhooks.js';
+vi.mock('@findata/store', () => ({
+  upsertTransactions: vi.fn(),
+}));
+
+// Import mocked modules (via the barrel — vitest resolves through alias)
+import { syncAllTransactions } from '@findata/plaid-bridge';
+import { upsertTransactions } from '@findata/store';
+import { handleWebhook } from '@findata/plaid-bridge';
 
 describe('PlaidSyncService', () => {
   let mockSupabaseClient: ReturnType<typeof createMockSupabaseClient>;
@@ -897,7 +897,7 @@ describe('PlaidSyncService', () => {
       });
 
       let capturedTransactions: any[] = [];
-      vi.mocked(upsertTransactions).mockImplementation(async (_client, _userId, input) => {
+      vi.mocked(upsertTransactions).mockImplementation(async (_client: any, _userId: any, input: any) => {
         capturedTransactions = input.transactions;
         return { inserted: 1, skipped: 0, transactionDbIds: ['db-1'] };
       });
@@ -996,7 +996,7 @@ describe('PlaidSyncService', () => {
       });
 
       let capturedTransactions: any[] = [];
-      vi.mocked(upsertTransactions).mockImplementation(async (_client, _userId, input) => {
+      vi.mocked(upsertTransactions).mockImplementation(async (_client: any, _userId: any, input: any) => {
         capturedTransactions = input.transactions;
         return { inserted: 1, skipped: 0, transactionDbIds: ['db-1'] };
       });
@@ -1116,7 +1116,7 @@ describe('PlaidSyncService', () => {
       });
 
       let capturedTransactions: any[] = [];
-      vi.mocked(upsertTransactions).mockImplementation(async (_client, _userId, input) => {
+      vi.mocked(upsertTransactions).mockImplementation(async (_client: any, _userId: any, input: any) => {
         capturedTransactions = input.transactions;
         return { inserted: 4, skipped: 0, transactionDbIds: ['db-1', 'db-2', 'db-3', 'db-4'] };
       });

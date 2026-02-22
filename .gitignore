@@ -18,6 +18,7 @@ coverage/
 *.qif
 result.json
 result_*.json
+plaid-result.json
 stmt.csv
 test-result.json
 .plaid-certs/

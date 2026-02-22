@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   reconcileTransactions,
   formatReconciliationReport,
-} from '../../src/plaid/reconcile.js';
-import type { ReconcilableTransaction } from '../../src/plaid/reconcile.js';
-import type { PlaidTransaction } from '../../src/plaid/types.js';
+} from '@findata/plaid-bridge';
+import type { ReconcilableTransaction } from '@findata/plaid-bridge';
+import type { PlaidTransaction } from '@findata/types';
 
 describe('Reconciliation', () => {
   const createPdfTransaction = (

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseUSDate, inferStatementYear, isValidISODate, compareDates } from '../../src/utils/date.js';
+import { parseUSDate, inferStatementYear, isValidISODate, compareDates } from '@findata/types';
 
 describe('parseUSDate', () => {
   it('should parse MM/DD/YY format', () => {

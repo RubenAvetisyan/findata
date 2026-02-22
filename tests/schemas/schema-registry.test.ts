@@ -4,13 +4,13 @@ import {
   getSchemaPath,
   isValidSchemaVersion,
   assertValidSchemaVersion,
-  validateOutput,
+  validateSchemaOutput as validateOutput,
   validateOutputOrThrow,
   resolveSchemaVersion,
   AVAILABLE_SCHEMA_VERSIONS,
   DEFAULT_SCHEMA_VERSION,
   type SchemaVersion,
-} from '../../src/schemas/schema-registry.js';
+} from '@findata/types';
 
 describe('schema-registry', () => {
   describe('AVAILABLE_SCHEMA_VERSIONS', () => {

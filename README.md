@@ -2,7 +2,7 @@
 
 A production-ready Node.js library and CLI for parsing Bank of America bank statement PDFs into clean, normalized, categorized JSON with full JSON Schema validation.
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -15,6 +15,7 @@ A production-ready Node.js library and CLI for parsing Bank of America bank stat
 - **Channel detection** — CHECKCARD, ATM, Zelle, Online Banking, etc.
 - **Multiple export formats** — JSON, CSV, OFX
 - **Schema validation** — AJV (Draft 2020-12) + Zod
+- **Unified sync pipeline** — PDF + Plaid + Supabase with gap-fill and DB as source of truth
 - **Integrations** — Supabase persistence, Plaid live banking
 - **TypeScript-first** — Full type safety with strict mode
 

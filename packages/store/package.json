@@ -1,0 +1,24 @@
+{
+  "name": "@findata/store",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {
+    "@findata/types": "workspace:*",
+    "@findata/output": "workspace:*",
+    "@supabase/supabase-js": "^2.94.0",
+    "pg": "^8.18.0"
+  }
+}

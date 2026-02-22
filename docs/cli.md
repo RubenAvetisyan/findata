@@ -167,7 +167,32 @@ pnpm parse-boa plaid reconcile --item-id <id> ./transaction-details.pdf
 
 # Reconcile from pre-parsed JSON result
 pnpm parse-boa plaid reconcile --item-id <id> ./result.json
+
+# Merge Plaid data into an existing result.json
+pnpm parse-boa plaid merge --item-id <id> ./result.json
 ```
+
+### Unified Build (PDF + Plaid + Supabase)
+
+The `plaid build` command runs the full unified sync pipeline — combining local PDFs, Plaid live data, and Supabase database into a single v2 output:
+
+```bash
+# Build from PDFs + Plaid gap-fill (recommended)
+pnpm parse-boa plaid build --inputDir ./statements --out result.json --verbose
+
+# Plaid-only mode (no local PDFs, database as source of truth)
+pnpm parse-boa plaid build --start-date 2025-01-01 --out result.json --verbose
+
+# With custom date range
+pnpm parse-boa plaid build --inputDir ./statements --start-date 2024-06-01 --end-date 2025-06-01 --out result.json
+```
+
+The pipeline stages:
+1. **Scan & parse PDFs** → upload to Supabase (dedup by transactionId)
+2. **Query Supabase** for existing data ranges
+3. **Gap analysis** — identify date ranges not covered by PDF + DB
+4. **Fill gaps from Plaid** → upload gap-fill transactions to Supabase
+5. **Build v2 output** from Supabase (database is source of truth)
 
 See [Plaid Integration](./plaid.md) for full command reference.
 

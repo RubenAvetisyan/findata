@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { categorizeTransaction, extractMerchant } from '../../src/categorization/categorizer.js';
+import { categorizeTransaction, extractMerchant } from '@findata/categorizer';
 
 describe('categorizeTransaction', () => {
   it('should categorize income transactions', () => {

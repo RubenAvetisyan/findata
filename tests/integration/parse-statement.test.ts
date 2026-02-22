@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseBoaStatement } from '../../src/parsers/boa/index.js';
-import type { ExtractedPDF } from '../../src/extractors/index.js';
+import { parseBoaStatement } from '@findata/boa-parser';
+import type { ExtractedPDF } from '@findata/pdf-extract';
 
 const createMockCheckingPDF = (): ExtractedPDF => ({
   pages: [

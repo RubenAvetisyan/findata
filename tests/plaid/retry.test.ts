@@ -4,7 +4,7 @@ import {
   isRetryableError,
   calculateDelay,
   RateLimiter,
-} from '../../src/plaid/retry.js';
+} from '@findata/plaid-bridge';
 
 describe('Retry Logic', () => {
   beforeEach(() => {

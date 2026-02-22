@@ -3,7 +3,7 @@ import {
   ParsedStatementSchema,
   TransactionSchema,
   AccountSchema,
-} from '../../src/schemas/statement.js';
+} from '@findata/types';
 
 describe('TransactionSchema', () => {
   it('should validate a valid transaction', () => {

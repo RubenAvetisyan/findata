@@ -8,9 +8,9 @@ import {
   getColumnForItem,
   mapRowToColumns,
   extractBoaTransactionFromRow,
-} from '../../src/layout/columns.js';
-import type { TextItem } from '../../src/extractors/layout-pdfjs.js';
-import type { Row } from '../../src/layout/rows.js';
+} from '@findata/pdf-extract';
+import type { TextItem } from '@findata/pdf-extract';
+import type { Row } from '@findata/pdf-extract';
 
 describe('detectColumnsFromHeader', () => {
   it('should detect columns from header row', () => {

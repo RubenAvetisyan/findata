@@ -19,7 +19,17 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true
+    "noPropertyAccessFromIndexSignature": true,
+    "paths": {
+      "@findata/types": ["./packages/types/src/index.ts"],
+      "@findata/pdf-extract": ["./packages/pdf-extract/src/index.ts"],
+      "@findata/categorizer": ["./packages/categorizer/src/index.ts"],
+      "@findata/categorizer-ml": ["./packages/categorizer-ml/src/index.ts"],
+      "@findata/boa-parser": ["./packages/boa-parser/src/index.ts"],
+      "@findata/output": ["./packages/output/src/index.ts"],
+      "@findata/plaid-bridge": ["./packages/plaid-bridge/src/index.ts"],
+      "@findata/store": ["./packages/store/src/index.ts"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "tests"]

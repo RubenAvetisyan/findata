@@ -9,8 +9,8 @@ import {
   resolveStatementDuplicate,
   isCombinedPdfFilename,
   type StatementWithSource,
-} from '../../src/utils/statement-merger.js';
-import type { ParsedStatement, Transaction } from '../../src/schemas/index.js';
+} from '@findata/boa-parser';
+import type { ParsedStatement, Transaction } from '@findata/types';
 
 function createMockTransaction(overrides: Partial<Transaction> = {}): Transaction {
   return {

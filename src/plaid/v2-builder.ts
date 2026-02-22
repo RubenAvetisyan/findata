@@ -149,7 +149,7 @@ function buildPlaidMatch(match: ReconciliationMatch): PlaidMatchInfo {
   const result: PlaidMatchInfo = {
     plaidTransactionId: plaidTx.transactionId,
     matchConfidence: match.confidence,
-    matchType: match.matchType as PlaidMatchInfo['matchType'],
+    matchType: match.matchType as 'exact' | 'fuzzy' | 'amount_date' | 'amount_only', // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
     differences: match.differences,
   };
 
@@ -159,9 +159,9 @@ function buildPlaidMatch(match: ReconciliationMatch): PlaidMatchInfo {
 
   if (plaidTx.location !== undefined) {
     const loc: { city?: string; state?: string; country?: string } = {};
-    if (plaidTx.location.city) loc.city = plaidTx.location.city;
-    if (plaidTx.location.region) loc.state = plaidTx.location.region;
-    if (plaidTx.location.country) loc.country = plaidTx.location.country;
+    if (plaidTx.location.city !== undefined && plaidTx.location.city !== '') loc.city = plaidTx.location.city;
+    if (plaidTx.location.region !== undefined && plaidTx.location.region !== '') loc.state = plaidTx.location.region;
+    if (plaidTx.location.country !== undefined && plaidTx.location.country !== '') loc.country = plaidTx.location.country;
     if (Object.keys(loc).length > 0) result.location = loc;
   }
 

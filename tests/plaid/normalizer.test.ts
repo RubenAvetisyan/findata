@@ -3,8 +3,8 @@ import {
   normalizeTransaction,
   normalizeTransactions,
   mapAccountType,
-} from '../../src/plaid/normalizer.js';
-import type { PlaidTransaction, PlaidAccount } from '../../src/plaid/types.js';
+} from '@findata/plaid-bridge';
+import type { PlaidTransaction, PlaidAccount } from '@findata/types';
 
 describe('Plaid Normalizer', () => {
   const createPlaidTransaction = (

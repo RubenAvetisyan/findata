@@ -1,0 +1,24 @@
+{
+  "name": "@findata/categorizer-ml",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "files": ["dist", "models"],
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {
+    "@findata/types": "workspace:*",
+    "@findata/categorizer": "workspace:*",
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow-models/universal-sentence-encoder": "^1.3.3"
+  }
+}

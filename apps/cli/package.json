@@ -1,0 +1,26 @@
+{
+  "name": "@findata/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "parse-boa": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {
+    "@findata/types": "workspace:*",
+    "@findata/pdf-extract": "workspace:*",
+    "@findata/categorizer": "workspace:*",
+    "@findata/categorizer-ml": "workspace:*",
+    "@findata/boa-parser": "workspace:*",
+    "@findata/output": "workspace:*",
+    "@findata/plaid-bridge": "workspace:*",
+    "@findata/store": "workspace:*",
+    "commander": "^12.1.0",
+    "dotenv": "^17.2.3"
+  }
+}

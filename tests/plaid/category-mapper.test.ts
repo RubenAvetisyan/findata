@@ -3,7 +3,7 @@ import {
   mapPlaidCategory,
   getAllCategoryMappings,
   isCategoryMapped,
-} from '../../src/plaid/category-mapper.js';
+} from '@findata/plaid-bridge';
 
 describe('Category Mapper', () => {
   describe('mapPlaidCategory', () => {

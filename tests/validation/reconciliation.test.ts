@@ -9,7 +9,7 @@ import {
   calculateTotalDebits,
   validateTransactionTotals,
   formatReconciliationResult,
-} from '../../src/validation/reconciliation.js';
+} from '@findata/types';
 
 describe('validateReconciliation', () => {
   it('should pass when balances reconcile exactly', () => {

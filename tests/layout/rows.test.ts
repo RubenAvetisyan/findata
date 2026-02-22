@@ -8,8 +8,8 @@ import {
   mergeWrappedDescriptions,
   filterRowsByYRange,
   getRowsForPage,
-} from '../../src/layout/rows.js';
-import type { TextItem } from '../../src/extractors/layout-pdfjs.js';
+} from '@findata/pdf-extract';
+import type { TextItem } from '@findata/pdf-extract';
 
 describe('groupByRows', () => {
   it('should group items with similar Y coordinates into rows', () => {

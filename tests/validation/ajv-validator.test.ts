@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { validateOutput, validateAndThrow, formatValidationErrors } from '../../src/validation/ajv-validator.js';
-import type { StatementFileOutput } from '../../src/types/output.js';
+import { validateOutput, validateAndThrow, formatValidationErrors } from '@findata/types';
+import type { StatementFileOutput } from '@findata/types';
 
 function createValidOutput(): StatementFileOutput {
   return {

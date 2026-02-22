@@ -3,8 +3,8 @@ import {
   checkIntegrity,
   checkStatementIntegrity,
   DEFAULT_EPSILON,
-} from '../../src/output/integrity.js';
-import type { ParsedStatement } from '../../src/schemas/index.js';
+} from '@findata/output';
+import type { ParsedStatement } from '@findata/types';
 
 const createMockStatement = (overrides: Partial<{
   startingBalance: number;

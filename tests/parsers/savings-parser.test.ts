@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseSavingsStatement, parseMultipleSavingsStatements } from '../../src/parsers/boa/savings-parser.js';
-import type { ExtractedPDF } from '../../src/extractors/index.js';
+import { parseSavingsStatement, parseMultipleSavingsStatements } from '@findata/boa-parser';
+import type { ExtractedPDF } from '@findata/pdf-extract';
 
 const createMockPDF = (text: string, pageCount = 1): ExtractedPDF => {
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);

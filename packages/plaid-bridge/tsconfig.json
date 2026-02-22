@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../types" },
+    { "path": "../categorizer" },
+    { "path": "../pdf-extract" },
+    { "path": "../boa-parser" },
+    { "path": "../output" },
+    { "path": "../store" }
+  ]
+}

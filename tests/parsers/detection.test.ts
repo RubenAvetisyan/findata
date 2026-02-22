@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { detectAccountType } from '../../src/parsers/boa/index.js';
-import type { ExtractedPDF } from '../../src/extractors/index.js';
+import { detectAccountType } from '@findata/boa-parser';
+import type { ExtractedPDF } from '@findata/pdf-extract';
 
 const createMockPDF = (text: string): ExtractedPDF => ({
   pages: [{ pageNumber: 1, text, lines: text.split('\n') }],

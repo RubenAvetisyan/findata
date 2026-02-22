@@ -4,7 +4,7 @@ import {
   CATEGORY_RULES_V2,
   DEFAULT_CATEGORY,
   DEFAULT_CONFIDENCE,
-} from '../../src/categorization/categorizer-v2.js';
+} from '@findata/categorizer';
 
 describe('Categorizer V2', () => {
   describe('categorizeTransaction', () => {

@@ -65,6 +65,15 @@ pnpm parse-boa plaid reconcile --item-id <id> ./transaction-details.pdf
 # Or reconcile from a pre-parsed JSON result
 pnpm parse-boa plaid reconcile --item-id <id> ./result.json
 
+# Merge Plaid data into an existing result.json
+pnpm parse-boa plaid merge --item-id <id> ./result.json
+
+# Unified build: PDF + Plaid + Supabase → v2 output
+pnpm parse-boa plaid build --inputDir ./statements --out result.json --verbose
+
+# Plaid-only build (no local PDFs, database as source of truth)
+pnpm parse-boa plaid build --start-date 2025-01-01 --out result.json --verbose
+
 # Advanced: Get account owner identity
 pnpm parse-boa plaid identity --item-id <id>
 

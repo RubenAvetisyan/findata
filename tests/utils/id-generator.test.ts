@@ -6,7 +6,7 @@ import {
   computeTransactionIds,
   isValidTransactionId,
   isValidStatementId,
-} from '../../src/utils/id-generator.js';
+} from '@findata/types';
 
 describe('id-generator', () => {
   describe('computeStatementId', () => {

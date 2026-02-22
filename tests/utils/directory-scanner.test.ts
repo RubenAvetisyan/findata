@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { scanDirectoryForPdfs, validateDirectory } from '../../src/utils/directory-scanner.js';
+import { scanDirectoryForPdfs, validateDirectory } from '@findata/boa-parser';
 
 describe('directory-scanner', () => {
   let testDir: string;

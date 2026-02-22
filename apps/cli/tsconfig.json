@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/pdf-extract" },
+    { "path": "../../packages/categorizer" },
+    { "path": "../../packages/categorizer-ml" },
+    { "path": "../../packages/boa-parser" },
+    { "path": "../../packages/output" },
+    { "path": "../../packages/plaid-bridge" },
+    { "path": "../../packages/store" }
+  ]
+}

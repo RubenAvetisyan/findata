@@ -6,8 +6,8 @@ import {
   generateTrainingData,
   HybridCategorizer,
   categorizeWithRulesOnly,
-} from '../../src/categorization/index.js';
-import type { TrainingExample } from '../../src/categorization/index.js';
+} from '@findata/categorizer-ml';
+import type { TrainingExample } from '@findata/categorizer-ml';
 
 describe('ML Categorizer', () => {
   describe('MLCategorizer class', () => {

@@ -7,7 +7,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { getPlaidClient } from './client.js';
 import { getPlaidItemStore, type PlaidItemStore } from './store.js';
@@ -353,7 +355,6 @@ export async function getEarliestTransactionDates(
   try {
     const response = await client.transactionsGet(request);
     const accounts = response.data.accounts as any[];
-    const transactions = response.data.transactions as any[];
 
     // The first transaction returned is the most recent (Plaid sorts desc by default)
     // We need the total count to find the last page

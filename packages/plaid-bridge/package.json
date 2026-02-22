@@ -1,0 +1,34 @@
+{
+  "name": "@findata/plaid-bridge",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./unified-sync": {
+      "import": "./dist/unified-sync/index.js",
+      "types": "./dist/unified-sync/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=18.0.0" },
+  "dependencies": {
+    "@findata/types": "workspace:*",
+    "@findata/categorizer": "workspace:*",
+    "@findata/pdf-extract": "workspace:*",
+    "@findata/boa-parser": "workspace:*",
+    "@findata/output": "workspace:*",
+    "@findata/store": "workspace:*",
+    "@supabase/supabase-js": "^2.49.4",
+    "plaid": "^41.1.0",
+    "selfsigned": "^5.5.0",
+    "dotenv": "^17.2.3"
+  }
+}

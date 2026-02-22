@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractChannel, extractBankReference, extractChannelAndReference } from '../../src/parsers/boa/channel-extractor.js';
+import { extractChannel, extractBankReference, extractChannelAndReference } from '@findata/boa-parser';
 
 describe('Channel Extractor', () => {
   describe('extractChannel', () => {

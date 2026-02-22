@@ -1,0 +1,584 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/bofa_rollup.schema.json",
+  "title": "Bank Statement Rollup (BOFA)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["startingBalance", "endingBalance", "totalStatements", "totalTransactions", "accounts", "analytics", "integrity"],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "v2"
+    },
+    "schemaRevision": {
+      "type": "string",
+      "description": "Optional minor revision indicator (e.g., '2.0.1') without changing schemaVersion"
+    },
+    "startingBalance": {
+      "type": "number",
+      "description": "Sum of startingBalance across all accounts. For single-account outputs this equals the account startingBalance. For multi-account outputs this is the aggregate (net worth) starting balance."
+    },
+    "endingBalance": {
+      "type": "number",
+      "description": "Sum of endingBalance across all accounts. For single-account outputs this equals the account endingBalance. For multi-account outputs this is the aggregate (net worth) ending balance."
+    },
+    "totalStatements": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of source PDF statement files parsed. This counts source documents, not calendar months."
+    },
+    "totalTransactions": { "type": "integer", "minimum": 0 },
+    "accounts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/accountBlock" }
+    },
+    "analytics": { "$ref": "#/$defs/analytics" },
+    "integrity": { "$ref": "#/$defs/integrityCheck" },
+    "recurring": { "$ref": "#/$defs/recurringDetection" },
+    "dataSources": { "$ref": "#/$defs/dataSources" },
+    "reconciliation": { "$ref": "#/$defs/reconciliationSummary" }
+  },
+  "$defs": {
+    "isoDate": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Date in YYYY-MM-DD"
+    },
+    "statementPeriod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "$ref": "#/$defs/isoDate" },
+        "end": { "$ref": "#/$defs/isoDate" }
+      }
+    },
+    "accountIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["institution", "accountType", "accountNumberMasked", "statementPeriod", "currency"],
+      "properties": {
+        "institution": { "type": "string", "minLength": 1 },
+        "accountType": {
+          "type": "string",
+          "enum": ["checking", "savings", "credit", "unknown"]
+        },
+        "accountNumberMasked": {
+          "type": "string",
+          "minLength": 4,
+          "description": "Masked account number like ****3529"
+        },
+        "statementPeriod": { "$ref": "#/$defs/statementPeriod" },
+        "currency": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 3,
+          "description": "ISO-4217 currency code, e.g. USD"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startingBalance", "endingBalance", "totalCredits", "totalDebits"],
+      "properties": {
+        "startingBalance": { "type": "number" },
+        "endingBalance": { "type": "number" },
+        "totalCredits": { "type": "number" },
+        "totalDebits": { "type": "number" }
+      }
+    },
+    "direction": {
+      "type": "string",
+      "enum": ["credit", "debit"]
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "raw": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["originalText", "page"],
+      "properties": {
+        "originalText": { "type": "string" },
+        "page": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "transaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "postedDate",
+        "description",
+        "merchant",
+        "amount",
+        "direction",
+        "category",
+        "subcategory",
+        "confidence",
+        "statementId",
+        "periodLabel",
+        "raw"
+      ],
+      "properties": {
+        "date": { "$ref": "#/$defs/isoDate" },
+        "postedDate": {
+          "anyOf": [
+            { "$ref": "#/$defs/isoDate" },
+            { "type": "null" }
+          ]
+        },
+        "description": { "type": "string", "minLength": 1 },
+        "merchant": { "type": "string", "minLength": 1 },
+        "amount": {
+          "type": "number",
+          "description": "Signed amount allowed; direction indicates semantic (credit/debit)."
+        },
+        "direction": { "$ref": "#/$defs/direction" },
+        "category": { "type": "string" },
+        "subcategory": {
+          "anyOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "confidence": {
+          "$ref": "#/$defs/confidence",
+          "description": "Parsing/OCR confidence (0-1), not financial correctness. Values < 1.0 indicate extraction uncertainty."
+        },
+        "statementId": {
+          "type": "string",
+          "description": "Unique identifier linking transaction to source statement (format: ACCOUNTTYPE-XXXX-YYYYMMDD-YYYYMMDD)"
+        },
+        "periodLabel": {
+          "type": "string",
+          "description": "Human-readable statement period label (e.g., '2025-08 BOA Checking')"
+        },
+        "raw": { "$ref": "#/$defs/raw" },
+        "transactionId": {
+          "type": "string",
+          "minLength": 27,
+          "maxLength": 27,
+          "pattern": "^tx_[a-f0-9]{24}$",
+          "description": "Deterministic unique transaction identifier (OFX FITID-equivalent). Format: tx_ + 24 hex chars from SHA-256 hash."
+        },
+        "plaidMatch": { "$ref": "#/$defs/plaidMatch" }
+      }
+    },
+    "accountBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["account", "summary", "transactions", "totalStatements", "totalTransactions"],
+      "properties": {
+        "account": { "$ref": "#/$defs/accountIdentity" },
+        "summary": { "$ref": "#/$defs/summary" },
+        "transactions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/transaction" }
+        },
+        "totalStatements": { "type": "integer", "minimum": 0 },
+        "totalTransactions": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "quarterlyCashFlow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quarter", "year", "quarterNumber", "startDate", "endDate", "totalIncome", "totalExpenses", "netCashFlow", "transactionCount"],
+      "properties": {
+        "quarter": { "type": "string", "pattern": "^\\d{4}-Q[1-4]$" },
+        "year": { "type": "integer" },
+        "quarterNumber": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "startDate": { "$ref": "#/$defs/isoDate" },
+        "endDate": { "$ref": "#/$defs/isoDate" },
+        "totalIncome": { "type": "number" },
+        "totalExpenses": { "type": "number" },
+        "netCashFlow": { "type": "number" },
+        "transactionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "incomeVsExpenses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalIncome", "totalExpenses", "netIncome", "incomeByCategory", "expensesByCategory", "excludedTransfers", "periodStart", "periodEnd"],
+      "properties": {
+        "totalIncome": { "type": "number" },
+        "totalExpenses": { "type": "number" },
+        "netIncome": { "type": "number" },
+        "incomeByCategory": { "type": "object", "additionalProperties": { "type": "number" } },
+        "expensesByCategory": { "type": "object", "additionalProperties": { "type": "number" } },
+        "excludedTransfers": { "type": "number" },
+        "periodStart": { "$ref": "#/$defs/isoDate" },
+        "periodEnd": { "$ref": "#/$defs/isoDate" }
+      }
+    },
+    "monthlyBreakdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["month", "income", "expenses", "netCashFlow"],
+      "properties": {
+        "month": { "type": "string", "pattern": "^\\d{4}-\\d{2}$" },
+        "income": { "type": "number" },
+        "expenses": { "type": "number" },
+        "netCashFlow": { "type": "number" }
+      }
+    },
+    "lenderSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["averageMonthlyIncome", "averageMonthlyExpenses", "monthlyIncomeVariance", "incomeStabilityScore", "consecutiveMonthsWithIncome", "totalMonthsAnalyzed", "monthlyBreakdown", "incomeSourceDiversity", "regularIncomeDetected", "estimatedAnnualIncome"],
+      "properties": {
+        "averageMonthlyIncome": { "type": "number" },
+        "averageMonthlyExpenses": { "type": "number" },
+        "monthlyIncomeVariance": { "type": "number" },
+        "incomeStabilityScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "consecutiveMonthsWithIncome": { "type": "integer", "minimum": 0 },
+        "totalMonthsAnalyzed": { "type": "integer", "minimum": 0 },
+        "monthlyBreakdown": { "type": "array", "items": { "$ref": "#/$defs/monthlyBreakdown" } },
+        "incomeSourceDiversity": { "type": "integer", "minimum": 0 },
+        "regularIncomeDetected": { "type": "boolean" },
+        "estimatedAnnualIncome": { "type": "number" }
+      }
+    },
+    "taxCategorySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "subcategory", "totalAmount", "transactionCount", "taxRelevance"],
+      "properties": {
+        "category": { "type": "string" },
+        "subcategory": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "totalAmount": { "type": "number" },
+        "transactionCount": { "type": "integer", "minimum": 0 },
+        "taxRelevance": { "type": "string", "enum": ["deductible", "income", "neutral", "review"] }
+      }
+    },
+    "taxDeductionSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["businessExpenses", "medicalExpenses", "charitableContributions", "homeOffice", "professionalServices", "otherDeductible"],
+      "properties": {
+        "businessExpenses": { "type": "number" },
+        "medicalExpenses": { "type": "number" },
+        "charitableContributions": { "type": "number" },
+        "homeOffice": { "type": "number" },
+        "professionalServices": { "type": "number" },
+        "otherDeductible": { "type": "number" }
+      }
+    },
+    "taxPreparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taxYear", "totalTaxableIncome", "totalDeductibleExpenses", "potentialDeductions", "incomeCategories", "reviewRequired", "summary"],
+      "properties": {
+        "taxYear": { "type": "integer" },
+        "totalTaxableIncome": { "type": "number" },
+        "totalDeductibleExpenses": { "type": "number" },
+        "potentialDeductions": { "type": "array", "items": { "$ref": "#/$defs/taxCategorySummary" } },
+        "incomeCategories": { "type": "array", "items": { "$ref": "#/$defs/taxCategorySummary" } },
+        "reviewRequired": { "type": "array", "items": { "$ref": "#/$defs/taxCategorySummary" } },
+        "summary": { "$ref": "#/$defs/taxDeductionSummary" }
+      }
+    },
+    "analytics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["quarterlyCashFlow", "incomeVsExpenses", "lenderSummary", "taxPreparation"],
+      "properties": {
+        "quarterlyCashFlow": { "type": "array", "items": { "$ref": "#/$defs/quarterlyCashFlow" } },
+        "incomeVsExpenses": { "$ref": "#/$defs/incomeVsExpenses" },
+        "lenderSummary": { "$ref": "#/$defs/lenderSummary" },
+        "taxPreparation": { "$ref": "#/$defs/taxPreparation" }
+      }
+    },
+    "balanceCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "beginningBalance", "endingBalance", "totalCredits", "totalDebits", "calculatedEnding", "delta"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "beginningBalance": { "type": "number" },
+        "endingBalance": { "type": "number" },
+        "totalCredits": { "type": "number" },
+        "totalDebits": { "type": "number" },
+        "calculatedEnding": { "type": "number" },
+        "delta": { "type": "number" }
+      }
+    },
+    "transactionCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "expectedCount", "actualCount"],
+      "properties": {
+        "passed": { "type": "boolean" },
+        "expectedCount": { "type": "integer", "minimum": 0 },
+        "actualCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "balanceDiscrepancy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statementId", "periodLabel", "expectedEndingBalance", "actualEndingBalance", "delta", "equation", "severity", "message"],
+      "properties": {
+        "statementId": { "type": "string" },
+        "periodLabel": { "type": "string" },
+        "expectedEndingBalance": { "type": "number" },
+        "actualEndingBalance": { "type": "number" },
+        "delta": { "type": "number" },
+        "equation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["beginningBalance", "totalCredits", "totalDebits", "calculatedEnding"],
+          "properties": {
+            "beginningBalance": { "type": "number" },
+            "totalCredits": { "type": "number" },
+            "totalDebits": { "type": "number" },
+            "calculatedEnding": { "type": "number" }
+          }
+        },
+        "severity": { "type": "string", "enum": ["info", "warning", "error"] },
+        "message": { "type": "string" }
+      }
+    },
+    "statementIntegrityResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statementId", "periodLabel", "isValid", "balanceCheck", "transactionCheck", "discrepancies"],
+      "properties": {
+        "statementId": { "type": "string" },
+        "periodLabel": { "type": "string" },
+        "isValid": { "type": "boolean" },
+        "balanceCheck": { "$ref": "#/$defs/balanceCheck" },
+        "transactionCheck": { "$ref": "#/$defs/transactionCheck" },
+        "discrepancies": { "type": "array", "items": { "$ref": "#/$defs/balanceDiscrepancy" } }
+      }
+    },
+    "integrityCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overallValid", "statementsChecked", "statementsWithIssues", "statementResults", "summary"],
+      "properties": {
+        "overallValid": { "type": "boolean" },
+        "statementsChecked": { "type": "integer", "minimum": 0 },
+        "statementsWithIssues": { "type": "integer", "minimum": 0 },
+        "statementResults": { "type": "array", "items": { "$ref": "#/$defs/statementIntegrityResult" } },
+        "summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["totalDiscrepancies", "totalDelta", "warnings"],
+          "properties": {
+            "totalDiscrepancies": { "type": "integer", "minimum": 0 },
+            "totalDelta": { "type": "number" },
+            "warnings": { "type": "array", "items": { "type": "string" } },
+            "epsilon": {
+              "type": "number",
+              "description": "Tolerance threshold used for balance reconciliation (default: 0.01)"
+            }
+          }
+        }
+      }
+    },
+    "recurringFrequency": {
+      "type": "string",
+      "enum": ["weekly", "bi-weekly", "monthly", "quarterly", "semi-annual", "annual", "irregular"]
+    },
+    "recurringPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patternId", "merchantKey", "merchantName", "frequency", "averageIntervalDays", "intervalStdDev", "averageAmount", "amountVariance", "isFixedAmount", "category", "subcategory", "direction", "occurrenceCount", "firstSeen", "lastSeen", "expectedNext", "confidence", "isSubscription", "transactionIds"],
+      "properties": {
+        "patternId": { "type": "string", "description": "Unique identifier for this recurring pattern" },
+        "merchantKey": { "type": "string", "description": "Normalized merchant key used for grouping" },
+        "merchantName": { "type": "string", "description": "Representative merchant name from transactions" },
+        "frequency": { "$ref": "#/$defs/recurringFrequency" },
+        "averageIntervalDays": { "type": "number", "minimum": 0 },
+        "intervalStdDev": { "type": "number", "minimum": 0 },
+        "averageAmount": { "type": "number" },
+        "amountVariance": { "type": "number", "minimum": 0 },
+        "isFixedAmount": { "type": "boolean" },
+        "category": { "type": "string" },
+        "subcategory": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "direction": { "$ref": "#/$defs/direction" },
+        "occurrenceCount": { "type": "integer", "minimum": 2 },
+        "firstSeen": { "$ref": "#/$defs/isoDate" },
+        "lastSeen": { "$ref": "#/$defs/isoDate" },
+        "expectedNext": { "anyOf": [{ "$ref": "#/$defs/isoDate" }, { "type": "null" }] },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "isSubscription": { "type": "boolean" },
+        "transactionIds": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "recurringSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalPatterns", "totalRecurringTransactions", "recurringPercentage", "estimatedMonthlyRecurring", "estimatedAnnualRecurring", "byFrequency", "subscriptionCount"],
+      "properties": {
+        "totalPatterns": { "type": "integer", "minimum": 0 },
+        "totalRecurringTransactions": { "type": "integer", "minimum": 0 },
+        "recurringPercentage": { "type": "number", "minimum": 0, "maximum": 100 },
+        "estimatedMonthlyRecurring": { "type": "number" },
+        "estimatedAnnualRecurring": { "type": "number" },
+        "byFrequency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["weekly", "bi-weekly", "monthly", "quarterly", "semi-annual", "annual", "irregular"],
+          "properties": {
+            "weekly": { "type": "integer", "minimum": 0 },
+            "bi-weekly": { "type": "integer", "minimum": 0 },
+            "monthly": { "type": "integer", "minimum": 0 },
+            "quarterly": { "type": "integer", "minimum": 0 },
+            "semi-annual": { "type": "integer", "minimum": 0 },
+            "annual": { "type": "integer", "minimum": 0 },
+            "irregular": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "subscriptionCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "recurringDetection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["patterns", "summary"],
+      "properties": {
+        "patterns": { "type": "array", "items": { "$ref": "#/$defs/recurringPattern" } },
+        "summary": { "$ref": "#/$defs/recurringSummary" }
+      },
+      "description": "Recurring transaction detection results (only present when --detect-recurring is enabled)"
+    },
+    "dataSources": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Information about data sources used to generate this output",
+      "properties": {
+        "requestedRange": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "The date range requested for this build",
+          "required": ["start", "end"],
+          "properties": {
+            "start": { "type": "string", "format": "date" },
+            "end": { "type": "string", "format": "date" }
+          }
+        },
+        "pdf": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["files", "transactionCount", "parseDate"],
+          "properties": {
+            "files": { "type": "array", "items": { "type": "string" } },
+            "transactionCount": { "type": "integer", "minimum": 0 },
+            "parseDate": { "type": "string", "format": "date-time" }
+          }
+        },
+        "database": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Database upload statistics when DB is used as source of truth",
+          "properties": {
+            "pdfUploaded": { "type": "integer", "minimum": 0 },
+            "pdfSkipped": { "type": "integer", "minimum": 0 },
+            "plaidUploaded": { "type": "integer", "minimum": 0 },
+            "plaidSkipped": { "type": "integer", "minimum": 0 },
+            "sourceOfTruth": { "type": "boolean" }
+          }
+        },
+        "plaid": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["itemId", "institutionName", "transactionCount", "syncDate"],
+          "properties": {
+            "itemId": { "type": "string" },
+            "institutionName": { "type": "string" },
+            "transactionCount": { "type": "integer", "minimum": 0 },
+            "syncDate": { "type": "string", "format": "date-time" },
+            "cursor": { "type": "string" },
+            "fetchedGaps": {
+              "description": "Date ranges fetched from Plaid to fill coverage gaps",
+              "oneOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["start", "end"],
+                    "properties": {
+                      "start": { "type": "string", "format": "date" },
+                      "end": { "type": "string", "format": "date" }
+                    }
+                  }
+                },
+                { "type": "string" }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "reconciliationSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["matched", "unmatchedPdf", "unmatchedPlaid", "matchRate", "totalPdfAmount", "totalPlaidAmount", "amountDifference", "matchBreakdown"],
+      "description": "Summary of PDF vs Plaid transaction reconciliation",
+      "properties": {
+        "matched": { "type": "integer", "minimum": 0 },
+        "unmatchedPdf": { "type": "integer", "minimum": 0 },
+        "unmatchedPlaid": { "type": "integer", "minimum": 0 },
+        "matchRate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "totalPdfAmount": { "type": "number" },
+        "totalPlaidAmount": { "type": "number" },
+        "amountDifference": { "type": "number" },
+        "matchBreakdown": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["exact", "fuzzy", "amountDate", "amountOnly"],
+          "properties": {
+            "exact": { "type": "integer", "minimum": 0 },
+            "fuzzy": { "type": "integer", "minimum": 0 },
+            "amountDate": { "type": "integer", "minimum": 0 },
+            "amountOnly": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "plaidMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plaidTransactionId", "matchConfidence", "matchType", "differences"],
+      "description": "Plaid transaction match information. For reconciled PDF transactions or Plaid-only gap-fill transactions.",
+      "properties": {
+        "plaidTransactionId": { "type": "string" },
+        "matchConfidence": { "$ref": "#/$defs/confidence" },
+        "matchType": {
+          "type": "string",
+          "enum": ["exact", "fuzzy", "amount_date", "amount_only", "plaid_only"]
+        },
+        "source": {
+          "type": "string",
+          "description": "Origin of this Plaid transaction (e.g. 'gap_fill' for transactions fetched to fill date gaps)"
+        },
+        "merchantName": { "type": "string" },
+        "location": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "city": { "type": "string" },
+            "state": { "type": "string" },
+            "country": { "type": "string" }
+          }
+        },
+        "personalFinanceCategory": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primary", "detailed"],
+          "properties": {
+            "primary": { "type": "string" },
+            "detailed": { "type": "string" }
+          }
+        },
+        "differences": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

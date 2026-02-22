@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { FilePlaidItemStore } from '../../src/plaid/file-store.js';
-import type { PlaidItem } from '../../src/plaid/types.js';
+import { FilePlaidItemStore } from '@findata/plaid-bridge';
+import type { PlaidItem } from '@findata/types';
 
 describe('FilePlaidItemStore', () => {
   let testDir: string;

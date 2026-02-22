@@ -8,9 +8,9 @@ import {
   isPlaidEnriched,
   getPlaidMatchStats,
   type EnrichOptions,
-} from '../../src/output/plaid-enricher.js';
-import type { FinalResultV2 } from '../../src/output/adapters.js';
-import type { PlaidTransaction, PlaidAccount, PlaidItem } from '../../src/plaid/types.js';
+} from '@findata/plaid-bridge';
+import type { FinalResultV2 } from '@findata/output';
+import type { PlaidTransaction, PlaidAccount, PlaidItem } from '@findata/types';
 
 // Helper to create a minimal FinalResultV2 for testing
 function createMockV2Output(transactions: Array<{

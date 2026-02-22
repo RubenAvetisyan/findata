@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseAmount, roundToTwoDecimals, formatCurrency, sumAmounts } from '../../src/utils/money.js';
+import { parseAmount, roundToTwoDecimals, formatCurrency, sumAmounts } from '@findata/types';
 
 describe('parseAmount', () => {
   it('should parse positive amounts', () => {

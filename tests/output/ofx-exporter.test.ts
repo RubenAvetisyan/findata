@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { exportOfx, exportAccountOfx, exportOfxByAccount } from '../../src/output/ofx-exporter.js';
-import type { FinalResultV2 } from '../../src/output/adapters.js';
+import { exportOfx, exportAccountOfx, exportOfxByAccount } from '@findata/output';
+import type { FinalResultV2 } from '@findata/output';
 
 const createMockV2Result = (): FinalResultV2 => ({
   schemaVersion: 'v2',

@@ -1931,7 +1931,7 @@ program
             ?? process.env['BOA_INPUT_DIR'];
 
           // inputDir is optional when DB is configured as source of truth
-          if ((buildInputDir === undefined || buildInputDir === '') && !buildSupabaseClient) {
+          if ((buildInputDir === undefined || buildInputDir === '') && buildSupabaseClient === undefined) {
             console.error('[ERROR] --inputDir is required when no database is configured');
             console.error('Usage:');
             console.error('  pnpm parse-boa plaid build --inputDir ./TEST --out result.json');
@@ -1995,7 +1995,7 @@ program
             console.error('[ML] Training ML categorizer from build output...');
 
             // Extract training examples from v2 output accounts/transactions
-            const v2Accounts = (syncResult.v2Output as Record<string, unknown>)['accounts'] as Array<Record<string, unknown>> | undefined;
+            const v2Accounts = (syncResult.v2Output as Record<string, unknown>)['accounts'] as Array<Record<string, unknown>> | undefined; // eslint-disable-line @typescript-eslint/no-unnecessary-type-assertion
             const parsedExamples: Array<{ description: string; category: string; subcategory: string | null }> = [];
 
             if (v2Accounts !== undefined) {

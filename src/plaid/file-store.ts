@@ -180,9 +180,10 @@ export class PlaidGapCache {
       this.data[accountKey] = [];
     }
     // Avoid duplicates
-    const exists = this.data[accountKey]!.some((e) => e.start === start && e.end === end);
+    const entries = this.data[accountKey];
+    const exists = entries !== undefined && entries.some((e) => e.start === start && e.end === end);
     if (!exists) {
-      this.data[accountKey]!.push({ start, end, checkedAt: new Date().toISOString() });
+      this.data[accountKey]?.push({ start, end, checkedAt: new Date().toISOString() });
       this.save();
     }
   }

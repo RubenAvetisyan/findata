@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isPlaidError } from '../../src/plaid/types.js';
-import type { PlaidTransaction, PlaidAccount, PlaidItem } from '../../src/plaid/types.js';
+import { isPlaidError } from '@findata/types';
+import type { PlaidTransaction, PlaidAccount, PlaidItem } from '@findata/types';
 
 describe('Plaid Type Guards', () => {
   describe('isPlaidError', () => {

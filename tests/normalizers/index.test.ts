@@ -5,8 +5,8 @@ import {
   filterTransactionsByDateRange,
   groupTransactionsByCategory,
   calculateCategoryTotals,
-} from '../../src/normalizers/index.js';
-import type { Transaction } from '../../src/schemas/index.js';
+} from '@findata/boa-parser';
+import type { Transaction } from '@findata/types';
 
 const createTransaction = (overrides: Partial<Transaction>): Transaction => ({
   date: '2024-01-15',

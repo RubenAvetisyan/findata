@@ -4,8 +4,8 @@ import {
   detectRecurringFromStatements,
   getRecurringFlags,
   type RecurringTransaction,
-} from '../../src/output/recurring-detector.js';
-import type { ParsedStatement } from '../../src/schemas/index.js';
+} from '@findata/output';
+import type { ParsedStatement } from '@findata/types';
 
 describe('recurring-detector', () => {
   describe('detectRecurring', () => {

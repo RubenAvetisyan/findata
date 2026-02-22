@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { exportCsv, exportAccountCsv, exportCsvByAccount } from '../../src/output/csv-exporter.js';
-import type { FinalResultV2 } from '../../src/output/adapters.js';
+import { exportCsv, exportAccountCsv, exportCsvByAccount } from '@findata/output';
+import type { FinalResultV2 } from '@findata/output';
 
 const createMockV2Result = (): FinalResultV2 => ({
   schemaVersion: 'v2',
