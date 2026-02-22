@@ -1,5 +1,5 @@
 /**
- * Plaid integration module for boa-statement-parser.
+ * Plaid integration module for findata.
  * Provides live banking data ingestion via Plaid API.
  */
 

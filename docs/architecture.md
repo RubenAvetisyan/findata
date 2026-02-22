@@ -1,63 +1,95 @@
 # Architecture
 
-## Supported PDF Formats
+## Philosophy
 
-The parser supports two types of Bank of America PDF documents:
+**findata** is an extensible financial data platform. Each financial institution is a pluggable parser module that transforms institution-specific PDF formats into a shared canonical structure. The core platform handles categorization, normalization, validation, export, Plaid sync, and Supabase persistence — institution parsers only need to extract raw transactions.
 
-### Monthly Statement PDFs
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                      findata core platform                       │
+│                                                                  │
+│  Categorization · Normalization · Validation · Export · Plaid    │
+│  ML Categorizer · Recurring Detection · Supabase · Analytics     │
+└──────────────────────────────────────────────────────────────────┘
+        ▲              ▲              ▲              ▲
+        │              │              │              │
+   ┌─────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐
+   │   BOA   │   │  Chime  │   │Cap. One │   │  Your   │
+   │ Parser  │   │ Parser  │   │ Parser  │   │ Parser  │
+   └─────────┘   └─────────┘   └─────────┘   └─────────┘
+        ▲              ▲              ▲              ▲
+        │              │              │              │
+   PDF files      PDF files      PDF files      PDF files
+```
 
-Traditional monthly bank statements downloaded from BOA Online Banking or received by mail. These contain:
+## Supported Institutions
+
+### Bank of America (`src/parsers/boa/`)  ✅ Shipped
+
+The BOA parser supports two PDF formats:
+
+**Monthly Statement PDFs** — Traditional monthly bank statements from BOA Online Banking or mail:
 - Account summary with beginning/ending balances
 - Transaction history organized by type (deposits, withdrawals, checks, fees)
-- Statement period information
+- Checking, savings, and credit card account types
 
-### Transaction Details PDFs ("Print Transaction Details")
-
-Web page exports from BOA Online Banking's "Print Transaction Details" feature. These contain:
+**Transaction Details PDFs** — Web page exports from BOA's "Print Transaction Details":
 - Custom date range transaction history
 - Account activity from the online banking portal
-- Useful for exporting transactions outside of monthly statement periods
-
-**Format characteristics:**
-- Header: `Bank of America | Online Banking | Deposit | Print Transaction Details`
-- Account line: `Adv Plus Banking - 3529 : Account Activity` or `Advantage Savings - 4971 : Account Activity`
-- Date range: `Showing results for "All Transactions, MM/DD/YYYY To MM/DD/YYYY"`
 
 Both formats are automatically detected and can be processed together in batch mode.
+
+### Adding a New Institution
+
+1. Create `src/parsers/<bank>/index.ts` with a detection function and main parser
+2. Create account-type-specific parsers (checking, savings, credit)
+3. Add bank-specific categorization rules if needed
+4. Register the parser in `src/parsers/index.ts`
+
+```
+src/parsers/
+  boa/                  # Bank of America (shipped)
+  chime/                # Chime (planned)
+    index.ts            # detectChime() + parseChimeStatement()
+    checking-parser.ts  # Checking account logic
+    types.ts            # Internal types
+  capitalone/           # Capital One (planned)
+    index.ts
+    ...
+```
 
 ## Project Structure
 
 ```
 /src
-  /cli                # Command-line interface
+  /cli                # Command-line interface (findata CLI)
   /batch              # Batch processing orchestration
     batch-processor.ts    # Multi-PDF processing with dedup
-  /parsers            # Bank-specific parsers
-    /boa              # Bank of America parsers
+  /parsers            # Institution-specific parsers (pluggable)
+    /boa              # Bank of America (first integration)
       checking-parser.ts    # Checking account parsing
       savings-parser.ts     # Savings account parsing
       credit-parser.ts      # Credit card parsing
-      transaction-details-parser.ts # "Print Transaction Details" PDF parsing
+      transaction-details-parser.ts # "Print Transaction Details" PDF
       channel-extractor.ts  # Channel type & bank reference extraction
       merchant-extractor.ts # Merchant info extraction
       line-merger.ts        # Wrapped line handling
       transaction-normalizer.ts # Full transaction normalization
-  /extractors         # PDF extraction utilities
-  /normalizers        # Data transformation utilities
-  /categorization     # Transaction categorization
-    categories.ts         # Legacy category rules
-    categorizer.ts        # Legacy categorizer
+  /extractors         # PDF extraction utilities (shared by all parsers)
+  /normalizers        # Data transformation utilities (shared)
+  /categorization     # Transaction categorization (shared)
     categorizer-v2.ts     # Priority-based categorizer with confidence tiers
     ml-categorizer.ts     # TensorFlow.js ML-based categorizer
     hybrid-categorizer.ts # Combined rule + ML categorization
     training-data-generator.ts # Synthetic training data generation
+  /output             # Export formats (JSON v1/v2, CSV, OFX, recurring)
+  /plaid              # Plaid live banking integration
+  /supabase           # Supabase database persistence
   /schemas            # Zod schemas and types
   /types              # TypeScript output types (aligned with JSON Schema)
   /validation         # AJV JSON Schema validation
   /utils              # Shared utilities
-    directory-scanner.ts  # PDF file discovery and filtering
-    statement-merger.ts   # Statement/transaction deduplication
-/tests                # Test files (367+ tests)
+/tests                # Test files (523 tests)
 /.windsurf            # Agent documentation
 ```
 
@@ -106,25 +138,9 @@ The parser includes a layout-aware extraction engine using `pdfjs-dist` that ext
 | `commander` | CLI parsing | Industry standard, auto-help, type-safe |
 | `vitest` | Testing | Fast, ESM-native, Jest-compatible API |
 
-## Extending to Other Banks
+## Extending to Other Institutions
 
-The architecture supports adding parsers for other banks:
-
-1. Create a new directory: `src/parsers/<bank>/`
-2. Implement detection patterns for the bank's format
-3. Create account-type-specific parsers
-4. Add categorization rules for bank-specific descriptions
-5. Register the parser in the main index
-
-Example structure for a new bank:
-
-```
-/src/parsers/chase/
-  index.ts           # Main parser and detection
-  checking-parser.ts # Checking account logic
-  credit-parser.ts   # Credit card logic
-  types.ts           # Internal types
-```
+See [Adding a New Institution](#adding-a-new-institution) above. The parsing pipeline is institution-agnostic — each parser module only needs to produce the shared canonical transaction structure. The core platform handles everything else.
 
 ## Error Handling
 

@@ -1,6 +1,8 @@
 # CLI Reference
 
-The `parse-boa` CLI provides a full-featured command-line interface for parsing Bank of America PDF statements.
+The `findata` CLI provides a full-featured command-line interface for parsing bank statement PDFs, syncing live data via Plaid, and persisting to Supabase. Currently ships with Bank of America as the first institution parser.
+
+> **Note:** The `parse-boa` command is still available as a backward-compatible alias.
 
 ## Initialization
 
@@ -8,13 +10,13 @@ After installing, run the init command to set up required files:
 
 ```bash
 # Initialize with .env file and pre-trained ML model
-parse-boa init
+findata init
 
 # Skip ML model (if you don't need ML categorization)
-parse-boa init --no-model
+findata init --no-model
 
 # Overwrite existing files
-parse-boa init --force
+findata init --force
 ```
 
 This creates:
@@ -26,19 +28,19 @@ This creates:
 
 ```bash
 # Parse a single statement PDF
-pnpm parse-boa ./statement.pdf
+findata ./statement.pdf
 
 # Save output to a file
-pnpm parse-boa ./statement.pdf --out result.json
+findata ./statement.pdf --out result.json
 
 # Enable verbose mode for debugging
-pnpm parse-boa ./statement.pdf --verbose
+findata ./statement.pdf --verbose
 
 # Enable strict validation
-pnpm parse-boa ./statement.pdf --strict
+findata ./statement.pdf --strict
 
 # Compact JSON output (no pretty-printing)
-pnpm parse-boa ./statement.pdf --no-pretty
+findata ./statement.pdf --no-pretty
 ```
 
 ## Batch Directory Processing
@@ -47,13 +49,13 @@ Process multiple PDF files from a directory:
 
 ```bash
 # Process all PDFs in a directory
-pnpm parse-boa --inputDir "C:\Users\...\Statements" --out result.json
+findata --inputDir "C:\Users\...\Statements" --out result.json
 
 # With verbose output showing progress
-pnpm parse-boa --inputDir ./statements --out result.json --verbose
+findata --inputDir ./statements --out result.json --verbose
 
 # With strict validation
-pnpm parse-boa --inputDir ./statements --out result.json --strict --verbose
+findata --inputDir ./statements --out result.json --strict --verbose
 ```
 
 Batch processing features:
@@ -67,16 +69,16 @@ Batch processing features:
 
 ```bash
 # JSON output (default)
-pnpm parse-boa ./statement.pdf --out result.json
+findata ./statement.pdf --out result.json
 
 # OFX output for accounting software
-pnpm parse-boa ./statement.pdf --format ofx --out statement.ofx
+findata ./statement.pdf --format ofx --out statement.ofx
 
 # CSV output for spreadsheets
-pnpm parse-boa ./statement.pdf --format csv --out statement.csv
+findata ./statement.pdf --format csv --out statement.csv
 
 # Split into separate files per account
-pnpm parse-boa --inputDir ./statements --format csv --split-accounts --out ./output/
+findata --inputDir ./statements --format csv --split-accounts --out ./output/
 ```
 
 See [Export Formats](./export-formats.md) for details on CSV and OFX output.
@@ -85,16 +87,16 @@ See [Export Formats](./export-formats.md) for details on CSV and OFX output.
 
 ```bash
 # Use v2 rollup format (default)
-pnpm parse-boa ./statement.pdf
+findata ./statement.pdf
 
 # Explicitly use v1 flat format
-pnpm parse-boa ./statement.pdf --schema-version v1
+findata ./statement.pdf --schema-version v1
 
 # Explicitly use v2
-pnpm parse-boa ./statement.pdf --schema-version v2
+findata ./statement.pdf --schema-version v2
 
 # Use environment variable
-FINAL_RESULT_SCHEMA_VERSION=v2 pnpm parse-boa ./statement.pdf
+FINAL_RESULT_SCHEMA_VERSION=v2 findata ./statement.pdf
 ```
 
 See [Output Schema](./output-schema.md) for schema version details.
@@ -103,13 +105,13 @@ See [Output Schema](./output-schema.md) for schema version details.
 
 ```bash
 # Train ML model using synthetic data only
-pnpm parse-boa --train-ml --model-out ./models/categorizer
+findata --train-ml --model-out ./models/categorizer
 
 # Train ML model from your parsed statements (recommended)
-pnpm parse-boa --train-ml --inputDir ./statements --model-out ./models/categorizer
+findata --train-ml --inputDir ./statements --model-out ./models/categorizer
 
 # Train with more epochs for better accuracy
-pnpm parse-boa --train-ml --inputDir ./statements --model-out ./models/categorizer --epochs 100 --verbose
+findata --train-ml --inputDir ./statements --model-out ./models/categorizer --epochs 100 --verbose
 ```
 
 See [Categorization](./categorization.md) for ML details.
@@ -118,10 +120,10 @@ See [Categorization](./categorization.md) for ML details.
 
 ```bash
 # Detect recurring transactions
-pnpm parse-boa --inputDir ./statements --detect-recurring --out result.json
+findata --inputDir ./statements --detect-recurring --out result.json
 
 # With verbose output showing detection stats
-pnpm parse-boa --inputDir ./statements --detect-recurring --verbose --out result.json
+findata --inputDir ./statements --detect-recurring --verbose --out result.json
 ```
 
 See [Recurring Transactions](./recurring-transactions.md) for details.
@@ -130,10 +132,10 @@ See [Recurring Transactions](./recurring-transactions.md) for details.
 
 ```bash
 # Parse and upload to Supabase
-pnpm parse-boa --inputDir ./statements --upload --user-id "your-user-uuid"
+findata --inputDir ./statements --upload --user-id "your-user-uuid"
 
 # With explicit Supabase credentials
-pnpm parse-boa --inputDir ./statements --upload \
+findata --inputDir ./statements --upload \
   --supabase-url "https://your-project.supabase.co" \
   --supabase-key "your-anon-key" \
   --user-id "your-user-uuid"
@@ -145,31 +147,31 @@ See [Supabase Integration](./supabase.md) for setup and details.
 
 ```bash
 # Test Plaid connection
-pnpm parse-boa plaid test
+findata plaid test
 
 # Link a new bank account
-pnpm parse-boa plaid link --user-id "your-user-uuid"
+findata plaid link --user-id "your-user-uuid"
 
 # List linked accounts
-pnpm parse-boa plaid list
+findata plaid list
 
 # Sync transactions
-pnpm parse-boa plaid sync --item-id <id>
+findata plaid sync --item-id <id>
 
 # Sync all linked items
-pnpm parse-boa plaid sync-all --user-id "your-user-uuid"
+findata plaid sync-all --user-id "your-user-uuid"
 
 # Reconcile PDF vs Plaid transactions (monthly statement)
-pnpm parse-boa plaid reconcile --item-id <id> ./statement.pdf
+findata plaid reconcile --item-id <id> ./statement.pdf
 
 # Reconcile "Print Transaction Details" PDF from online banking
-pnpm parse-boa plaid reconcile --item-id <id> ./transaction-details.pdf
+findata plaid reconcile --item-id <id> ./transaction-details.pdf
 
 # Reconcile from pre-parsed JSON result
-pnpm parse-boa plaid reconcile --item-id <id> ./result.json
+findata plaid reconcile --item-id <id> ./result.json
 
 # Merge Plaid data into an existing result.json
-pnpm parse-boa plaid merge --item-id <id> ./result.json
+findata plaid merge --item-id <id> ./result.json
 ```
 
 ### Unified Build (PDF + Plaid + Supabase)
@@ -178,13 +180,13 @@ The `plaid build` command runs the full unified sync pipeline — combining loca
 
 ```bash
 # Build from PDFs + Plaid gap-fill (recommended)
-pnpm parse-boa plaid build --inputDir ./statements --out result.json --verbose
+findata plaid build --inputDir ./statements --out result.json --verbose
 
 # Plaid-only mode (no local PDFs, database as source of truth)
-pnpm parse-boa plaid build --start-date 2025-01-01 --out result.json --verbose
+findata plaid build --start-date 2025-01-01 --out result.json --verbose
 
 # With custom date range
-pnpm parse-boa plaid build --inputDir ./statements --start-date 2024-06-01 --end-date 2025-06-01 --out result.json
+findata plaid build --inputDir ./statements --start-date 2024-06-01 --end-date 2025-06-01 --out result.json
 ```
 
 The pipeline stages:

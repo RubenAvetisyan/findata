@@ -36,16 +36,16 @@ BOA_USER_ID=your-user-uuid
 
 ```bash
 # Parse and upload to Supabase
-pnpm parse-boa --inputDir ./statements --upload --user-id "your-user-uuid"
+findata --inputDir ./statements --upload --user-id "your-user-uuid"
 
 # With explicit Supabase credentials
-pnpm parse-boa --inputDir ./statements --upload \
+findata --inputDir ./statements --upload \
   --supabase-url "https://your-project.supabase.co" \
   --supabase-key "your-anon-key" \
   --user-id "your-user-uuid"
 
 # Combine with other options
-pnpm parse-boa --inputDir ./statements --upload --user-id "your-uuid" \
+findata --inputDir ./statements --upload --user-id "your-uuid" \
   --out result.json --verbose
 ```
 
@@ -58,7 +58,7 @@ import {
   getTransactions,
   getMonthlyCategoryTotals,
   setTransactionOverride,
-} from 'boa-statement-parser';
+} from 'findata';
 
 // Create client
 const client = createSupabaseClient({

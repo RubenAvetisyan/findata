@@ -33,58 +33,58 @@ PLAID_REDIRECT_URI=https://localhost:8484/oauth-callback
 
 ```bash
 # Test Plaid connection
-pnpm parse-boa plaid test
+findata plaid test
 
 # Link a new bank account
-pnpm parse-boa plaid link --user-id "your-user-uuid"
+findata plaid link --user-id "your-user-uuid"
 
 # List linked accounts
-pnpm parse-boa plaid list
+findata plaid list
 
 # Check item status
-pnpm parse-boa plaid status --item-id <id>
+findata plaid status --item-id <id>
 
 # Sync transactions for a single item
-pnpm parse-boa plaid sync --item-id <id>
+findata plaid sync --item-id <id>
 
 # Sync all linked items (requires Supabase)
-pnpm parse-boa plaid sync-all --user-id "your-user-uuid"
+findata plaid sync-all --user-id "your-user-uuid"
 
 # Full sync (ignore cursor, fetch all history)
-pnpm parse-boa plaid sync --item-id <id> --full
+findata plaid sync --item-id <id> --full
 
 # Remove linked account
-pnpm parse-boa plaid remove --item-id <id>
+findata plaid remove --item-id <id>
 
 # Reconcile PDF vs Plaid transactions
-pnpm parse-boa plaid reconcile --item-id <id> ./statement.pdf
+findata plaid reconcile --item-id <id> ./statement.pdf
 
 # Also supports "Print Transaction Details" PDFs from BOA online banking
-pnpm parse-boa plaid reconcile --item-id <id> ./transaction-details.pdf
+findata plaid reconcile --item-id <id> ./transaction-details.pdf
 
 # Or reconcile from a pre-parsed JSON result
-pnpm parse-boa plaid reconcile --item-id <id> ./result.json
+findata plaid reconcile --item-id <id> ./result.json
 
 # Merge Plaid data into an existing result.json
-pnpm parse-boa plaid merge --item-id <id> ./result.json
+findata plaid merge --item-id <id> ./result.json
 
 # Unified build: PDF + Plaid + Supabase → v2 output
-pnpm parse-boa plaid build --inputDir ./statements --out result.json --verbose
+findata plaid build --inputDir ./statements --out result.json --verbose
 
 # Plaid-only build (no local PDFs, database as source of truth)
-pnpm parse-boa plaid build --start-date 2025-01-01 --out result.json --verbose
+findata plaid build --start-date 2025-01-01 --out result.json --verbose
 
 # Advanced: Get account owner identity
-pnpm parse-boa plaid identity --item-id <id>
+findata plaid identity --item-id <id>
 
 # Advanced: Get ACH routing/account numbers
-pnpm parse-boa plaid auth --item-id <id>
+findata plaid auth --item-id <id>
 
 # Advanced: Get credit card/loan balances
-pnpm parse-boa plaid liabilities --item-id <id>
+findata plaid liabilities --item-id <id>
 
 # Advanced: Get investment holdings
-pnpm parse-boa plaid holdings --item-id <id>
+findata plaid holdings --item-id <id>
 ```
 
 ## Programmatic Usage
@@ -96,7 +96,7 @@ import {
   syncItemTransactions,
   createSyncService,
   reconcileTransactions,
-} from 'boa-statement-parser';
+} from 'findata';
 
 // Check if Plaid is configured
 if (!isPlaidConfigured()) {
@@ -149,7 +149,7 @@ The reconciliation engine matches PDF-derived transactions against Plaid data. I
 | `amount_only` | Same amount, different date/merchant |
 
 ```typescript
-import { reconcileTransactions, formatReconciliationReport } from 'boa-statement-parser';
+import { reconcileTransactions, formatReconciliationReport } from 'findata';
 
 const result = reconcileTransactions(pdfTxns, plaidTxns, {
   dateToleranceDays: 3,
@@ -169,7 +169,7 @@ console.log(formatReconciliationReport(result));
 ## Webhook Handling
 
 ```typescript
-import { createWebhookHandler } from 'boa-statement-parser';
+import { createWebhookHandler } from 'findata';
 
 // Create Express/Fastify-compatible handler
 const handler = createWebhookHandler({

@@ -6,10 +6,10 @@ The parser can detect recurring transactions such as subscriptions, regular bill
 
 ```bash
 # Detect recurring transactions
-pnpm parse-boa --inputDir ./statements --detect-recurring --out result.json
+findata --inputDir ./statements --detect-recurring --out result.json
 
 # With verbose output showing detection stats
-pnpm parse-boa --inputDir ./statements --detect-recurring --verbose --out result.json
+findata --inputDir ./statements --detect-recurring --verbose --out result.json
 ```
 
 ### Environment Variable
@@ -100,7 +100,7 @@ Pattern confidence is calculated from:
 ## Programmatic Usage
 
 ```typescript
-import { detectRecurring, detectRecurringFromStatements } from 'boa-statement-parser';
+import { detectRecurring, detectRecurringFromStatements } from 'findata';
 
 // From raw transactions
 const result = detectRecurring(transactions, {

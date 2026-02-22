@@ -66,7 +66,7 @@ function createValidOutput(): StatementFileOutput {
     ],
     metadata: {
       parser: {
-        name: 'boa-statement-parser',
+        name: 'findata',
         version: '1.0.0',
       },
       parsedAt: new Date().toISOString(),

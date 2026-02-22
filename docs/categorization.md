@@ -68,7 +68,7 @@ The parser includes an optional machine learning-based categorizer using TensorF
 ### Usage
 
 ```typescript
-import { HybridCategorizer, generateTrainingData } from 'boa-statement-parser';
+import { HybridCategorizer, generateTrainingData } from 'findata';
 
 // Initialize hybrid categorizer
 const categorizer = new HybridCategorizer();
@@ -104,7 +104,7 @@ The `generateTrainingData()` function creates synthetic training examples from:
 - Existing rule-based patterns
 
 ```typescript
-import { generateTrainingData, generateFromParsedTransactions } from 'boa-statement-parser';
+import { generateTrainingData, generateFromParsedTransactions } from 'findata';
 
 // Generate synthetic training data
 const syntheticData = generateTrainingData(5000);
@@ -131,13 +131,13 @@ await newCategorizer.loadMLModel('./models/categorizer');
 
 ```bash
 # Train ML model using synthetic data only
-pnpm parse-boa --train-ml --model-out ./models/categorizer
+findata --train-ml --model-out ./models/categorizer
 
 # Train ML model from your parsed statements (recommended)
-pnpm parse-boa --train-ml --inputDir ./statements --model-out ./models/categorizer
+findata --train-ml --inputDir ./statements --model-out ./models/categorizer
 
 # Train with more epochs for better accuracy
-pnpm parse-boa --train-ml --inputDir ./statements --model-out ./models/categorizer --epochs 100 --verbose
+findata --train-ml --inputDir ./statements --model-out ./models/categorizer --epochs 100 --verbose
 ```
 
 The training process:

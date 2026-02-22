@@ -1,5 +1,5 @@
 /**
- * Plaid integration types for boa-statement-parser.
+ * Plaid integration types for findata.
  * These types define the structures for Plaid API interactions and storage.
  */
 

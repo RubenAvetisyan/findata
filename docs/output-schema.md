@@ -82,7 +82,7 @@ The output conforms to JSON Schema Draft 2020-12. Full schemas are available at:
     }
   }],
   "metadata": {
-    "parser": { "name": "boa-statement-parser", "version": "1.0.0" },
+    "parser": { "name": "findata", "version": "1.0.0" },
     "parsedAt": "2024-01-15T10:30:00.000Z",
     "warnings": []
   }

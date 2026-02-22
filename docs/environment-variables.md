@@ -47,7 +47,7 @@ BOA_FORMAT=json
 
 Now you can simply run:
 ```bash
-pnpm parse-boa
+findata
 ```
 
 ## Parsing Options
@@ -140,13 +140,13 @@ BOA_MODEL_PATH=./models/categorizer
 **`DEBUG`**
 ```bash
 # Enable all boa-parser debug logs
-DEBUG=boa-parser:* pnpm parse-boa ./statement.pdf
+DEBUG=boa-parser:* findata ./statement.pdf
 
 # Enable specific module debugging
-DEBUG=boa-parser:extractor pnpm parse-boa ./statement.pdf
+DEBUG=boa-parser:extractor findata ./statement.pdf
 
 # Multiple patterns
-DEBUG=boa-parser:parser,boa-parser:categorizer pnpm parse-boa ./statement.pdf
+DEBUG=boa-parser:parser,boa-parser:categorizer findata ./statement.pdf
 ```
 
 **`NO_COLOR`** - Disables ANSI color codes. Useful for logging to files or CI environments.
@@ -180,11 +180,11 @@ TF_ENABLE_ONEDNN_OPTS=0
 
 With this configuration, you can run:
 ```bash
-pnpm parse-boa
+findata
 ```
 Instead of:
 ```bash
-pnpm parse-boa --inputDir "C:\Users\YourName\Documents\Statements" --ml --model ./models/categorizer --schema-version v2 --out result.json
+findata --inputDir "C:\Users\YourName\Documents\Statements" --ml --model ./models/categorizer --schema-version v2 --out result.json
 ```
 
 ## CI/CD Environment

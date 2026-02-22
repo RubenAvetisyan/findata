@@ -10,13 +10,13 @@ Export to CSV format for spreadsheet import (Excel, Google Sheets, etc.).
 
 ```bash
 # Export single PDF to CSV
-pnpm parse-boa ./statement.pdf --format csv --out statement.csv
+findata ./statement.pdf --format csv --out statement.csv
 
 # Export directory of PDFs to CSV
-pnpm parse-boa --inputDir ./statements --format csv --out combined.csv
+findata --inputDir ./statements --format csv --out combined.csv
 
 # Split into separate files per account (boa_checking_3529.csv, boa_savings_4971.csv)
-pnpm parse-boa --inputDir ./statements --format csv --split-accounts --out ./output/
+findata --inputDir ./statements --format csv --split-accounts --out ./output/
 ```
 
 ### CSV Columns
@@ -39,7 +39,7 @@ pnpm parse-boa --inputDir ./statements --format csv --split-accounts --out ./out
 ### Programmatic Usage
 
 ```typescript
-import { toFinalResultV2, exportCsv, exportCsvByAccount } from 'boa-statement-parser';
+import { toFinalResultV2, exportCsv, exportCsvByAccount } from 'findata';
 
 const v2Result = toFinalResultV2(canonicalOutput);
 
@@ -61,16 +61,16 @@ Export to OFX (Open Financial Exchange) format for import into accounting softwa
 
 ```bash
 # Export single PDF to OFX
-pnpm parse-boa ./statement.pdf --format ofx --out statement.ofx
+findata ./statement.pdf --format ofx --out statement.ofx
 
 # Export directory of PDFs to OFX
-pnpm parse-boa --inputDir ./statements --format ofx --out combined.ofx
+findata --inputDir ./statements --format ofx --out combined.ofx
 
 # Split into separate files per account (boa_checking_3529.ofx, boa_savings_4971.ofx)
-pnpm parse-boa --inputDir ./statements --format ofx --split-accounts --out ./output/
+findata --inputDir ./statements --format ofx --split-accounts --out ./output/
 
 # With verbose output
-pnpm parse-boa ./statement.pdf --format ofx --out statement.ofx --verbose
+findata ./statement.pdf --format ofx --out statement.ofx --verbose
 ```
 
 ### OFX Transaction Types
@@ -91,7 +91,7 @@ The exporter automatically detects specific OFX transaction types from descripti
 ### Programmatic Usage
 
 ```typescript
-import { toFinalResultV2, exportOfx } from 'boa-statement-parser';
+import { toFinalResultV2, exportOfx } from 'findata';
 
 const v2Result = toFinalResultV2(canonicalOutput);
 
@@ -99,7 +99,7 @@ const v2Result = toFinalResultV2(canonicalOutput);
 const ofxText = exportOfx(v2Result);
 
 // Or export a single account
-import { exportAccountOfx } from 'boa-statement-parser';
+import { exportAccountOfx } from 'findata';
 const singleAccountOfx = exportAccountOfx(v2Result.accounts[0]);
 ```
 

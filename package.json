@@ -1,7 +1,7 @@
 {
-  "name": "boa-statement-parser",
+  "name": "findata",
   "version": "2.0.0",
-  "description": "Production-ready Bank of America statement PDF parser with transaction categorization",
+  "description": "Extensible financial data toolkit — parse bank statement PDFs, sync live data via Plaid, persist to Supabase. Ships with Bank of America integration; add Chime, Capital One, or any institution.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,6 +36,7 @@
     }
   },
   "bin": {
+    "findata": "dist/cli/index.js",
     "parse-boa": "dist/cli/index.js"
   },
   "files": [
@@ -54,15 +55,23 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "findata": "node --loader ts-node/esm src/cli/index.ts",
     "parse-boa": "node --loader ts-node/esm src/cli/index.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
-    "bank-of-america",
+    "findata",
+    "financial-data",
+    "bank-statement-parser",
     "pdf-parser",
-    "statement-parser",
+    "plaid",
+    "supabase",
     "transaction-categorization",
-    "financial"
+    "bank-of-america",
+    "capital-one",
+    "chime",
+    "ofx",
+    "csv"
   ],
   "author": {
     "name": "Ruben Avetisyan",
@@ -70,12 +79,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RubenAvetisyan/boa-statement-parser.git"
+    "url": "git+https://github.com/RubenAvetisyan/findata.git"
   },
   "bugs": {
-    "url": "https://github.com/RubenAvetisyan/boa-statement-parser/issues"
+    "url": "https://github.com/RubenAvetisyan/findata/issues"
   },
-  "homepage": "https://github.com/RubenAvetisyan/boa-statement-parser#readme",
+  "homepage": "https://github.com/RubenAvetisyan/findata#readme",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

@@ -1,5 +1,5 @@
 /**
- * Supabase integration module for boa-statement-parser.
+ * Supabase integration module for findata.
  * Provides database storage, querying, and override functionality.
  */
 
