@@ -1,5 +1,5 @@
 {
-  "name": "findata",
+  "name": "findata-kit",
   "version": "2.1.0",
   "description": "Extensible financial data toolkit — parse bank statement PDFs, sync live data via Plaid, persist to Supabase. Ships with Bank of America integration; add Chime, Capital One, or any institution.",
   "type": "module",

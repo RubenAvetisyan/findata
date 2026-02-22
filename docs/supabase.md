@@ -58,7 +58,7 @@ import {
   getTransactions,
   getMonthlyCategoryTotals,
   setTransactionOverride,
-} from 'findata';
+} from 'findata-kit';
 
 // Create client
 const client = createSupabaseClient({

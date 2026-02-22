@@ -68,7 +68,7 @@ The parser includes an optional machine learning-based categorizer using TensorF
 ### Usage
 
 ```typescript
-import { HybridCategorizer, generateTrainingData } from 'findata';
+import { HybridCategorizer, generateTrainingData } from 'findata-kit';
 
 // Initialize hybrid categorizer
 const categorizer = new HybridCategorizer();
@@ -104,7 +104,7 @@ The `generateTrainingData()` function creates synthetic training examples from:
 - Existing rule-based patterns
 
 ```typescript
-import { generateTrainingData, generateFromParsedTransactions } from 'findata';
+import { generateTrainingData, generateFromParsedTransactions } from 'findata-kit';
 
 // Generate synthetic training data
 const syntheticData = generateTrainingData(5000);

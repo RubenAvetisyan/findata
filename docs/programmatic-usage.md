@@ -5,7 +5,7 @@ Use `findata` as a library in your Node.js/TypeScript projects.
 ## Quick Start
 
 ```typescript
-import { parseStatementFile } from 'findata';
+import { parseStatementFile } from 'findata-kit';
 
 const result = await parseStatementFile('./statement.pdf', {
   strict: true,
@@ -18,7 +18,7 @@ console.log(result.statement.transactions);
 ## Advanced Usage
 
 ```typescript
-import { extractPDF, parseBoaStatement, detectAccountType } from 'findata';
+import { extractPDF, parseBoaStatement, detectAccountType } from 'findata-kit';
 
 // Extract PDF content
 const pdf = await extractPDF('./statement.pdf');
@@ -45,8 +45,8 @@ console.log(result.statement.metadata.warnings);
 The layout engine provides utilities for positional text extraction:
 
 ```typescript
-import { extractTextItems } from 'findata';
-import { groupByRows, mergeWrappedDescriptions } from 'findata/layout';
+import { extractTextItems } from 'findata-kit';
+import { groupByRows, mergeWrappedDescriptions } from 'findata-kit/layout';
 
 // Extract with positions
 const { items } = await extractTextItems('./statement.pdf');
@@ -61,7 +61,7 @@ const merged = mergeWrappedDescriptions(rows);
 ## Balance Reconciliation
 
 ```typescript
-import { validateReconciliation } from 'findata/validation';
+import { validateReconciliation } from 'findata-kit/validation';
 
 const result = validateReconciliation(
   startingBalance,
@@ -79,7 +79,7 @@ if (!result.passed) {
 ## Recurring Transaction Detection
 
 ```typescript
-import { detectRecurring, detectRecurringFromStatements } from 'findata';
+import { detectRecurring, detectRecurringFromStatements } from 'findata-kit';
 
 // From raw transactions
 const result = detectRecurring(transactions, {
@@ -99,7 +99,7 @@ console.log(result.patterns.filter(p => p.isSubscription));
 ### CSV
 
 ```typescript
-import { toFinalResultV2, exportCsv, exportCsvByAccount } from 'findata';
+import { toFinalResultV2, exportCsv, exportCsvByAccount } from 'findata-kit';
 
 const v2Result = toFinalResultV2(canonicalOutput);
 
@@ -116,13 +116,13 @@ for (const { filename, content } of splitResults) {
 ### OFX
 
 ```typescript
-import { toFinalResultV2, exportOfx } from 'findata';
+import { toFinalResultV2, exportOfx } from 'findata-kit';
 
 const v2Result = toFinalResultV2(canonicalOutput);
 const ofxText = exportOfx(v2Result);
 
 // Or export a single account
-import { exportAccountOfx } from 'findata';
+import { exportAccountOfx } from 'findata-kit';
 const singleAccountOfx = exportAccountOfx(v2Result.accounts[0]);
 ```
 
@@ -135,7 +135,7 @@ import {
   getTransactions,
   getMonthlyCategoryTotals,
   setTransactionOverride,
-} from 'findata';
+} from 'findata-kit';
 
 // Create client
 const client = createSupabaseClient({
@@ -178,7 +178,7 @@ import {
   syncItemTransactions,
   createSyncService,
   reconcileTransactions,
-} from 'findata';
+} from 'findata-kit';
 
 // Check if Plaid is configured
 if (!isPlaidConfigured()) {
@@ -227,7 +227,7 @@ console.log(`Matched: ${reconcileResult.summary.matchedCount}`);
 ## ML Categorization
 
 ```typescript
-import { HybridCategorizer, generateTrainingData } from 'findata';
+import { HybridCategorizer, generateTrainingData } from 'findata-kit';
 
 // Initialize hybrid categorizer
 const categorizer = new HybridCategorizer();

@@ -39,7 +39,7 @@ findata --inputDir ./statements --format csv --split-accounts --out ./output/
 ### Programmatic Usage
 
 ```typescript
-import { toFinalResultV2, exportCsv, exportCsvByAccount } from 'findata';
+import { toFinalResultV2, exportCsv, exportCsvByAccount } from 'findata-kit';
 
 const v2Result = toFinalResultV2(canonicalOutput);
 
@@ -91,7 +91,7 @@ The exporter automatically detects specific OFX transaction types from descripti
 ### Programmatic Usage
 
 ```typescript
-import { toFinalResultV2, exportOfx } from 'findata';
+import { toFinalResultV2, exportOfx } from 'findata-kit';
 
 const v2Result = toFinalResultV2(canonicalOutput);
 
@@ -99,7 +99,7 @@ const v2Result = toFinalResultV2(canonicalOutput);
 const ofxText = exportOfx(v2Result);
 
 // Or export a single account
-import { exportAccountOfx } from 'findata';
+import { exportAccountOfx } from 'findata-kit';
 const singleAccountOfx = exportAccountOfx(v2Result.accounts[0]);
 ```
 

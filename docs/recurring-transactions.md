@@ -100,7 +100,7 @@ Pattern confidence is calculated from:
 ## Programmatic Usage
 
 ```typescript
-import { detectRecurring, detectRecurringFromStatements } from 'findata';
+import { detectRecurring, detectRecurringFromStatements } from 'findata-kit';
 
 // From raw transactions
 const result = detectRecurring(transactions, {

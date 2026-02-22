@@ -96,7 +96,7 @@ import {
   syncItemTransactions,
   createSyncService,
   reconcileTransactions,
-} from 'findata';
+} from 'findata-kit';
 
 // Check if Plaid is configured
 if (!isPlaidConfigured()) {
@@ -149,7 +149,7 @@ The reconciliation engine matches PDF-derived transactions against Plaid data. I
 | `amount_only` | Same amount, different date/merchant |
 
 ```typescript
-import { reconcileTransactions, formatReconciliationReport } from 'findata';
+import { reconcileTransactions, formatReconciliationReport } from 'findata-kit';
 
 const result = reconcileTransactions(pdfTxns, plaidTxns, {
   dateToleranceDays: 3,
@@ -169,7 +169,7 @@ console.log(formatReconciliationReport(result));
 ## Webhook Handling
 
 ```typescript
-import { createWebhookHandler } from 'findata';
+import { createWebhookHandler } from 'findata-kit';
 
 // Create Express/Fastify-compatible handler
 const handler = createWebhookHandler({

@@ -2,7 +2,7 @@
 
 An extensible financial data toolkit for Node.js — parse bank statement PDFs, sync live transactions via Plaid, persist to Supabase, and export to JSON/CSV/OFX. Ships with **Bank of America** as the first institution integration; designed so you can add Chime, Capital One, Self.inc, or any other institution.
 
-[![npm](https://img.shields.io/npm/v/findata.svg)](https://www.npmjs.com/package/findata)
+[![npm](https://img.shields.io/npm/v/findata-kit.svg)](https://www.npmjs.com/package/findata-kit)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -40,8 +40,8 @@ Most financial tools are locked to one bank or one data source. **findata** give
 ## Installation
 
 ```bash
-npm install -g findata   # global CLI
-npm install findata      # library
+npm install -g findata-kit   # global CLI
+npm install findata-kit      # library
 ```
 
 ## Quick Start
@@ -68,7 +68,7 @@ findata plaid build --start-date 2025-01-01 --out result.json
 ### Library
 
 ```typescript
-import { parseStatementFile } from 'findata';
+import { parseStatementFile } from 'findata-kit';
 
 const result = await parseStatementFile('./statement.pdf', {
   strict: true,
@@ -80,12 +80,12 @@ console.log(result.statement.transactions);
 Sub-path imports for tree-shaking:
 
 ```typescript
-import { reconcileTransactions } from 'findata/plaid';
-import { importV2Result } from 'findata/supabase';
-import { exportCsv } from 'findata/output';
-import { groupByRows } from 'findata/layout';
-import { validateOutput } from 'findata/validation';
-import { HybridCategorizer } from 'findata/categorization';
+import { reconcileTransactions } from 'findata-kit/plaid';
+import { importV2Result } from 'findata-kit/supabase';
+import { exportCsv } from 'findata-kit/output';
+import { groupByRows } from 'findata-kit/layout';
+import { validateOutput } from 'findata-kit/validation';
+import { HybridCategorizer } from 'findata-kit/categorization';
 ```
 
 ## Adding a New Institution
